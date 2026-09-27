@@ -58,7 +58,9 @@ _SEARCH_REQ = re.compile(r"^/search/([A-Za-z0-9]+)\.json$")
 # the PDF's mtime plus the render parameters, so re-ingesting a PDF invalidates it immediately
 # and a revalidation inside the day still gets the right answer.
 _IMG_CACHE = "public, max-age=86400"
-_PWA_CACHE = "public, max-age=86400"
+# The manifest and home-screen icons are tiny and change when the brand does; a day of
+# max-age kept a phone on a superseded icon after it was redrawn, so they always revalidate.
+_PWA_CACHE = "no-cache"
 
 # Content types worth gzipping: markup, JSON, plain text. PNG/JPEG/PDF are already compressed and
 # would only burn CPU to get marginally bigger.
