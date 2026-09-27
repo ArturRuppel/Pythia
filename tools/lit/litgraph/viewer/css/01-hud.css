@@ -5,15 +5,15 @@
   body{--hud-h:46px;--hud-top:var(--hud-h)}
   body.hud-off{--hud-top:0px}
   #hud{position:fixed;top:0;left:0;right:0;z-index:30;display:flex;align-items:center;gap:12px;
-    padding:8px 16px;background:var(--navy);color:#d7e0e7;
+    padding:8px 16px;background:var(--navy);color:#dedee2;
     border-bottom:1px solid rgba(0,0,0,.18);backdrop-filter:blur(6px);
     transition:transform .18s ease}
   body.hud-off #hud{transform:translateY(-100%)}
   #hud b{font-size:13px;color:#fff}
   #hud .widthctl{display:flex;align-items:center;gap:8px;
-    font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#a9b7c4}
-  #hud .widthctl input{width:150px;accent-color:#5a9fd0;cursor:pointer}
-  #hud .widthctl .val{min-width:34px;text-align:right;color:#d7e0e7;letter-spacing:0}
+    font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#adadb4}
+  #hud .widthctl input{width:150px;accent-color:#b79ce6;cursor:pointer}
+  #hud .widthctl .val{min-width:34px;text-align:right;color:#dedee2;letter-spacing:0}
   /* board zoom — the camera control, beside width, which is the LAYOUT control. Same shape as
      width on purpose: both are continuous, both want to be swept rather than counted up to, and
      a camera especially — you find the distance you want by moving until the board looks right,
@@ -21,21 +21,21 @@
      multiplicative, so half and double have to sit the same distance from 100%.
      `margin-left:auto` here (rather than on .widthctl) parks the pair together at the bar's end. */
   #hud .zoomctl{margin-left:auto;display:flex;align-items:center;gap:8px;
-    font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#a9b7c4}
-  #hud .zoomctl input{width:120px;accent-color:#5a9fd0;cursor:pointer}
-  #hud .zoomctl .zval{min-width:38px;text-align:right;color:#d7e0e7;letter-spacing:0;
+    font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#adadb4}
+  #hud .zoomctl input{width:120px;accent-color:#b79ce6;cursor:pointer}
+  #hud .zoomctl .zval{min-width:38px;text-align:right;color:#dedee2;letter-spacing:0;
     font-variant-numeric:tabular-nums;cursor:pointer}
   #hud .zoomctl .zval:hover{color:#fff;text-decoration:underline}
 
   /* find-a-paper search box (build + serve) + its results dropdown */
-  #hud #search{width:240px;font:inherit;font-size:11px;color:#eaf1f6;
+  #hud #search{width:240px;font:inherit;font-size:11px;color:#ececef;
     background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.18);border-radius:999px;
     padding:4px 12px;outline:none;-webkit-appearance:none}
-  #hud #search::placeholder{color:#93a4b3}
-  #hud #search:focus{background:rgba(255,255,255,.16);border-color:rgba(150,195,225,.75)}
+  #hud #search::placeholder{color:#96969d}
+  #hud #search:focus{background:rgba(255,255,255,.16);border-color:rgba(203,184,230,.75)}
   #searchResults{position:fixed;z-index:55;width:340px;max-height:70vh;overflow:auto;display:none;
     background:var(--panel);border:1px solid var(--line);border-radius:10px;
-    box-shadow:0 12px 34px rgba(38,54,70,.24);padding:5px}
+    box-shadow:0 12px 34px rgba(28,27,34,.24);padding:5px}
   #searchResults.on{display:block}
   #searchResults .sr-row{display:flex;flex-direction:column;gap:2px;padding:7px 9px;border-radius:7px;cursor:pointer}
   #searchResults .sr-row:hover{background:var(--bg)}
@@ -48,7 +48,7 @@
   #searchResults .sr-more{padding:6px 9px 4px;font-size:9px;color:var(--faint);letter-spacing:.4px}
   /* topic-mode banner: names what's being shown so a topic search never reads as a text match */
   #searchResults .sr-topic{padding:6px 9px 5px;font-size:9px;letter-spacing:.5px;
-    text-transform:uppercase;color:#295c86;border-bottom:1px solid var(--line);margin-bottom:3px}
+    text-transform:uppercase;color:#6b3fa0;border-bottom:1px solid var(--line);margin-bottom:3px}
 
   /* a paper the search jumped to: a brief highlight so the eye lands on it */
   @keyframes foundflash{
@@ -71,10 +71,10 @@
 
   /* collapsible PDF viewer toggle (serve only, browse view) */
   #hud .pdfbtn{display:inline-flex;align-items:center;gap:6px;cursor:pointer;font:inherit;
-    font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#bcd2e4;
-    border:1px solid rgba(120,170,210,.42);border-radius:999px;padding:3px 10px;
-    background:rgba(90,159,208,.14)}
-  #hud .pdfbtn:hover{background:rgba(90,159,208,.26);border-color:rgba(150,195,225,.7)}
-  #hud .pdfbtn.on{background:rgba(90,159,208,.34);border-color:rgba(170,205,230,.85);color:#fff}
+    font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#c9c9cf;
+    border:1px solid rgba(183,156,230,.42);border-radius:999px;padding:3px 10px;
+    background:rgba(183,156,230,.14)}
+  #hud .pdfbtn:hover{background:rgba(183,156,230,.26);border-color:rgba(203,184,230,.7)}
+  #hud .pdfbtn.on{background:rgba(183,156,230,.34);border-color:rgba(221,205,239,.85);color:#fff}
   #hud .pdfbtn[hidden]{display:none}
 

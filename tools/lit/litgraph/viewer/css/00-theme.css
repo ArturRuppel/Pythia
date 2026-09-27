@@ -1,14 +1,14 @@
 <style>
   :root{
-    /* ELN light theme. The variable NAMES are load-bearing: JS reads --grounded / --cross /
+    /* Family light theme (shared with Mnemosyne, Iris, Calliope). The variable NAMES are load-bearing: JS reads --grounded / --cross /
        --question via cssv() to stroke the SVG edges, so only their VALUES change here. */
-    --bg:#eef1f4;--ink:#27313a;--dim:#53616d;--faint:#6a7884;--line:#d7dde2;--panel:#ffffff;
+    --bg:#f3f3f4;--ink:#1c1b22;--dim:#5c5b63;--faint:#7a7a82;--line:#d4d4d8;--panel:#ffffff;
     --floor:#b5822f;--model:#8a6db1;--grounded:#27735f;--borrowed:#286b9f;
     --question:#a15c1e;--broad:#7a4fb0;--cross:#9a3b3b;
     --plausible:#8a97a4;
     /* programme layer: a claim's modality, and the two feasibility kinds */
     --proposed:#8a6db1;--test:#2f6f8f;--capability:#5a7a52;--risk:#9a3b3b;
-    --navy:#263646;   /* the signature ELN accent bar (the HUD) */
+    --navy:#0f3d3a;   /* the family's deep-teal bar (the HUD), as in Mnemosyne's header */
     --col:500px;   /* content-container width; the width slider in the HUD drives it */
     --grip:8px;    /* the graph/PDF seam's grab width — widened for fingers under (pointer:coarse).
                       Lives on :root so that override wins: an equal-specificity `body` rule later
@@ -16,4 +16,4 @@
   }
   *{box-sizing:border-box}
   html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
-    font:13px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+    font:13px/1.45 "Archivo",system-ui,-apple-system,sans-serif}

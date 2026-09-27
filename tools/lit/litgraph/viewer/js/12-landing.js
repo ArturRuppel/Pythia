@@ -262,7 +262,7 @@ if (!DETACHED) boot();                                // the detached PDF window
 // in-page dock, over the "lit-pdf" BroadcastChannel. We announce {t:"ready"} on boot so a graph
 // window that opened us first still hands over the current aim.
 if (DETACHED) {
-  document.title = "litgraph · PDF";
+  document.title = "Pythia · PDF";
   const pane = document.getElementById("detachPane");
   let win = null, lastAim = null;
   function mount(m){

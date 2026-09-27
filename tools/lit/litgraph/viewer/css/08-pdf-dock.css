@@ -27,8 +27,8 @@
     width:var(--grip);margin-right:calc(var(--grip) / -2);z-index:17;cursor:ew-resize;
     background:transparent;transition:background .12s,top .18s ease}
   #dockGrip::after{content:"";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-    width:3px;height:38px;border-radius:3px;background:#c3ccd4;transition:background .12s}
-  #dockGrip:hover,body.dock-resizing #dockGrip{background:#6ea8d8}
+    width:3px;height:38px;border-radius:3px;background:#c4c4ca;transition:background .12s}
+  #dockGrip:hover,body.dock-resizing #dockGrip{background:#9a74cc}
   #dockGrip:hover::after,body.dock-resizing #dockGrip::after{background:#fff}
   body.dock-resizing{user-select:none}            /* the cursor is set per axis from JS */
   body.dock-resizing .pw-side{pointer-events:none}
@@ -56,7 +56,7 @@
   body.detached #dockGrip,body.detached #tip,body.detached #ctxmenu,
   body.detached #wipPanel,body.detached #aimPanel,
   body.detached #libraryPane{display:none!important}
-  body.detached #detachPane{display:block;position:fixed;inset:0;z-index:5;background:#e0e5e9}
+  body.detached #detachPane{display:block;position:fixed;inset:0;z-index:5;background:#e2e2e5}
   body.detached #detachEmpty{position:absolute;inset:0;display:flex;align-items:center;
     justify-content:center;text-align:center;padding:24px;color:var(--faint);font-size:12px}
   body.detached #detachPane .pw{position:absolute!important;inset:0!important;

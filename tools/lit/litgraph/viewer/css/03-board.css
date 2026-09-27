@@ -55,13 +55,13 @@
   /* paper card */
   .card{position:relative;border:1.5px solid var(--line);border-radius:12px;background:var(--panel);
     overflow:hidden;cursor:pointer;transition:border-color .15s,box-shadow .15s}
-  .card:hover{border-color:#b8c3cc}
+  .card:hover{border-color:#bcbcc2}
   .card.curated{border-style:solid}
   /* a stub expands too — to the bib record, not to slices it doesn't have — so it keeps the
      card's pointer cursor in both states (.card.open would otherwise make it read as inert) */
   .card.stub{border-style:dashed;opacity:.92}
   .card.stub.open{cursor:pointer;opacity:1}
-  .card.focus{border-color:var(--grounded);box-shadow:0 0 0 1px var(--grounded),0 6px 20px rgba(38,54,70,.14)}
+  .card.focus{border-color:var(--grounded);box-shadow:0 0 0 1px var(--grounded),0 6px 20px rgba(28,27,34,.14)}
   /* hover counterpart: the paper(s) an edge of the hovered claim touches */
   .card.hl{border-color:var(--borrowed);box-shadow:0 0 0 1px var(--borrowed)}
   .bn.hl{box-shadow:0 0 0 1.5px var(--borrowed)}
@@ -121,14 +121,14 @@
   /* curator tags — a container filter axis; ride in the header (collapsed or open), click one to
      search it. As a single flex child they wrap onto their own header line when the row is full. */
   .ctags{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
-  .ctag{font-size:8px;letter-spacing:.3px;color:#3f6486;background:#eef3f8;border:1px solid #d7e2ec;
+  .ctag{font-size:8px;letter-spacing:.3px;color:#5a3389;background:#f4f0f9;border:1px solid #dccdef;
     border-radius:999px;padding:2px 7px;cursor:pointer}
-  .ctag:hover{background:#e0ebf4;border-color:#b9cfe0;color:#295c86}
+  .ctag:hover{background:#eee7f7;border-color:#cbb8e6;color:#6b3fa0}
   /* open card: body is inert; the header collapses, the slice rows drill */
   .card.open{cursor:default}
   .card.open .chd{cursor:pointer}
 
   /* slices (vertical, within-paper). A paper's slices render as the GRAPH they are (see
      renderGraph); an aim's still render as the outline of groups its rhetoric wants. */
-  .slices{display:none;border-top:1px solid var(--line);padding:6px 9px 9px 12px;background:#f9fbfc}
+  .slices{display:none;border-top:1px solid var(--line);padding:6px 9px 9px 12px;background:#fafafb}
   .card.open .slices{display:block}

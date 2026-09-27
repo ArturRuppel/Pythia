@@ -221,7 +221,13 @@ if (!DETACHED) (function(){
   const hud = document.getElementById("hud");
   if (!hud) return;
   const measure = () => document.body.style.setProperty("--hud-h", hud.offsetHeight + "px");
-  measure(); addEventListener("resize", measure);
+  measure();
+  // Controls below are revealed after this module runs. On a narrow viewport that can wrap the
+  // HUD onto another row without resizing the window, so a window-only listener leaves the new
+  // row over the first card. Observe the bar itself: its rendered height is the inset's source of
+  // truth, whether the change came from viewport size, late content, or font/layout settling.
+  if (typeof ResizeObserver !== "undefined") new ResizeObserver(measure).observe(hud);
+  else addEventListener("resize", measure);
   const THRESH = 28;                    // px travelled one way before the bar commits to a move
   let last = 0, run = 0;
   board.addEventListener("scroll", () => {
@@ -637,4 +643,3 @@ async function mountDoc(win, key, page, rects, opts){
   });
   attachFind(win, key, {body, pages, view});
 }
-

@@ -1,12 +1,12 @@
 {
-  "name": "LitGraph",
-  "short_name": "LitGraph",
+  "name": "Pythia",
+  "short_name": "Pythia",
   "description": "An evidence-backed knowledge graph over the scientific literature.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#eef1f4",
-  "theme_color": "#263646",
+  "background_color": "#f3f3f4",
+  "theme_color": "#f3f3f4",
   "icons": [
     {
       "src": "icon-192.png",
@@ -17,7 +17,7 @@
       "src": "icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ]
 }

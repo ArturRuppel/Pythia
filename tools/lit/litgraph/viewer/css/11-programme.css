@@ -19,8 +19,8 @@
   .slices .sgrp.nsec:hover{color:var(--ink)}
   /* a bullet: the sentence at reading size, its id small and quiet (it is an edge anchor, not a
      label the reader needs), and the count of what stands behind it pushed to the right */
-  .slice.nbul{padding:5px 6px;background:#f6f8fa;cursor:pointer}
-  .slice.nbul:hover{background:#e9eef2}
+  .slice.nbul{padding:5px 6px;background:#f6f6f7;cursor:pointer}
+  .slice.nbul:hover{background:#eaeaec}
   .slice.nbul .stx{font-size:10px;line-height:1.42}
   .sid.nb{background:var(--faint);font-weight:600;opacity:.72}
   .nrf{flex:none;margin-left:5px;margin-top:1px;padding:0 5px;border-radius:6px;font-size:7px;

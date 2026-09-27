@@ -13,7 +13,7 @@
     text-transform:uppercase;color:var(--faint);padding:0 0 2px 3px;border-bottom:1px solid var(--line)}
   .schd .sct{margin-left:auto;letter-spacing:0}
   .snodes .slice{cursor:pointer;margin:0}
-  .snodes .slice:hover{background:#e9eef2}
+  .snodes .slice:hover{background:#eaeaec}
   /* the bar is the section's own header: click it to unfold the graph, and shut it says only how
      much is behind it. `.sfold` inside it keeps its own job (fold every row to its badge). */
   .slices .sbar{display:flex;align-items:center;gap:6px;margin-bottom:6px;cursor:pointer;
@@ -24,7 +24,7 @@
   .slices .saxis{opacity:.75}
   .slices .sfold{margin-left:auto;cursor:pointer;letter-spacing:.5px;padding:1px 6px;
     border:1px solid var(--line);border-radius:9px;white-space:nowrap}
-  .slices .sfold:hover{color:var(--dim);border-color:#b8c3cc;background:#fff}
+  .slices .sfold:hover{color:var(--dim);border-color:#bcbcc2;background:#fff}
   /* folded to its badge: the text goes, the node stays — collapse the card and the whole
      topology lands in one screenful, which is when the arcs stop being decoration */
   .slice.fold{padding:1px 5px}
@@ -42,11 +42,11 @@
   .slices .sgrp:hover{color:var(--dim)}
   .slices .sgrp .gcar{font-size:7px}
   .slices .sgrp .gct{margin-left:auto;letter-spacing:0;font-weight:400;color:var(--faint)}
-  .slices .sgrpb{padding-left:6px;margin-left:2px;border-left:1px solid #e0e5e9}
+  .slices .sgrpb{padding-left:6px;margin-left:2px;border-left:1px solid #e2e2e5}
   .slice{display:flex;gap:5px;align-items:flex-start;padding:3px 5px;margin:2px 0;border-radius:5px;
-    background:#f3f6f8;font-size:9px}
+    background:#f5f5f6;font-size:9px}
   .slice.drillable{cursor:pointer}
-  .slice.drillable:hover{background:#e9eef2}
+  .slice.drillable:hover{background:#eaeaec}
   .car{flex:none;width:9px;color:var(--faint);font-size:8px;margin-top:1px;text-align:center}
   .sid{flex:none;font-size:7px;font-weight:700;padding:1px 4px;border-radius:3px;color:#fff;margin-top:1px}
   .sid.fl{background:var(--floor)}.sid.cl{background:var(--grounded)}.sid.bo{background:var(--borrowed)}
@@ -79,19 +79,19 @@
      one "▸ N sources" card; only an explicit click unfolds it */
   .card.stack{cursor:pointer}
   .stack .ckey{color:var(--dim);font-weight:600}
-  .srcs{display:none;border-top:1px solid var(--line);padding:5px 9px 8px;background:#f9fbfc}
+  .srcs{display:none;border-top:1px solid var(--line);padding:5px 9px 8px;background:#fafafb}
   .card.stack.open .srcs{display:block}
   /* wrap, so the bib record an expanded row reveals gets a line of its own rather than
      squeezing the citekey — the row is a flex line first and a record second */
   .src{display:flex;flex-wrap:wrap;gap:6px;align-items:baseline;padding:2px 5px;margin:1px 0;
-    border-radius:4px;background:#f3f6f8;font-size:9px;cursor:pointer}
-  .src:hover{background:#e9eef2}
+    border-radius:4px;background:#f5f5f6;font-size:9px;cursor:pointer}
+  .src:hover{background:#eaeaec}
   .src .skey{font-weight:700}
   .src .sy{margin-left:auto;color:var(--faint);font-size:8px}
   /* the same expansion as a stub CARD, in the one place most stubs actually stand: the wall.
      Keyed off the same stubOpen set, so one uncited paper reads the same everywhere it appears. */
   .sdet{display:none;flex-basis:100%;padding:2px 0 3px;line-height:1.35}
-  .src.open{background:#e9eef2}
+  .src.open{background:#eaeaec}
   .src.open .sdet{display:block}
   .sdet .st{color:var(--dim)}
   .sdet .sa{color:var(--faint);padding-top:2px}

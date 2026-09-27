@@ -25,7 +25,7 @@
   #walkRail .wr-hd:first-child{margin-top:0;border-top:0;padding-top:0}
   #walkRail .wr-row{display:flex;align-items:center;gap:7px;padding:4px 14px;cursor:pointer;
     font-size:11px;border-left:2px solid transparent}
-  #walkRail .wr-row:hover{background:#e9eef2}
+  #walkRail .wr-row:hover{background:#eaeaec}
   #walkRail .wr-row.on{background:rgba(76,195,138,.10);border-left-color:var(--grounded)}
   #walkRail .wr-row .k{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   #walkRail .wr-row .n{margin-left:auto;font-size:9px;color:var(--faint);
@@ -33,7 +33,7 @@
   #walkRail .wr-row.hot .n{color:var(--cross)}
   #walkRail .wr-t{padding:3px 14px;font-size:10.5px;color:var(--dim);cursor:pointer;
     border-left:2px solid transparent}
-  #walkRail .wr-t:hover{background:#e9eef2;color:var(--ink)}
+  #walkRail .wr-t:hover{background:#eaeaec;color:var(--ink)}
   #walkRail .wr-t.on{background:rgba(122,92,255,.12);border-left-color:var(--broad)}
   #walkRail .wr-t .n{float:right;font-size:9px;color:var(--faint)}
 
@@ -69,14 +69,14 @@
   .wk-tab.on.x{background:rgba(255,123,114,.12);border-color:var(--cross)}
   .wk-tab.off{opacity:.32;cursor:default}
   .wk-tab .ct{font-size:9px;font-variant-numeric:tabular-nums;color:var(--faint);
-    background:#eef2f5;border-radius:999px;padding:1px 5px;min-width:17px;
+    background:#f0f0f2;border-radius:999px;padding:1px 5px;min-width:17px;
     text-align:center}
   .wk-note{font-size:9.5px;color:var(--faint);margin:0 0 12px;max-width:78ch;line-height:1.4}
 
   #walkTree{max-width:1100px}
   .wk-row{display:flex;align-items:flex-start;min-height:23px;border-radius:5px;
     padding:2px 6px 2px 0;cursor:pointer}
-  .wk-row:hover{background:#e9eef2}
+  .wk-row:hover{background:#eaeaec}
   .wk-g{flex:none;width:17px;align-self:stretch;position:relative}
   .wk-g.v::before{content:"";position:absolute;left:8px;top:0;bottom:0;
     border-left:1px solid rgba(0,0,0,.13)}
@@ -100,13 +100,13 @@
   .wk-q.aims:hover{border-left-color:var(--grounded);color:var(--ink)}
   .wk-bg{flex:none;display:flex;gap:3px;margin:2px 0 0 10px;align-items:center}
   .wk-b{font-size:9px;font-variant-numeric:tabular-nums;border:1px solid rgba(0,0,0,.14);
-    border-radius:5px;padding:0 4px;color:var(--faint);background:#e9eef2;
+    border-radius:5px;padding:0 4px;color:var(--faint);background:#eaeaec;
     cursor:pointer;line-height:16px}
-  .wk-b:hover{border-color:currentColor;background:#dde5eb}
+  .wk-b:hover{border-color:currentColor;background:#dfdfe3}
   .wk-b.z{display:none}
   .wk-chip{display:inline-flex;align-items:center;gap:6px;font-size:10px;color:var(--faint);
     border:1px dashed var(--line);border-radius:7px;padding:2px 9px;margin:3px 0;cursor:pointer;
-    background:#f3f6f8}
+    background:#f5f5f6}
   .wk-chip:hover{color:var(--ink);border-color:var(--faint)}
   .wk-chip b{color:var(--dim);font-variant-numeric:tabular-nums}
   .wk-chiprow{display:flex;align-items:center;min-height:22px}
@@ -121,7 +121,7 @@
   #walkLedger .lhd span{float:right;color:var(--faint);font-variant-numeric:tabular-nums}
   .wk-ent{border-left:2px solid transparent;padding:5px 0 6px 10px;margin-bottom:4px;
     cursor:pointer;border-radius:0 5px 5px 0}
-  .wk-ent:hover{background:#e9eef2}
+  .wk-ent:hover{background:#eaeaec}
   .wk-ent.p{border-left-color:rgba(76,195,138,.45)}
   .wk-ent.m{border-left-color:rgba(255,123,114,.45)}
   .wk-ent .src{font-size:9.5px;color:var(--dim);font-weight:600}

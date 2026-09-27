@@ -1,0 +1,262 @@
+  /* ── the Pythia app: the touch reading view (iPhone + iPad) ─────────────────────────────────
+     A second face on the same GRAPH, not a restyle of the board: a tab bar (Library · Topics ·
+     Reading · Search), each tab its own push stack of screens (paper, claim, stance ledger).
+     body.app swaps it in for the board; 19-app.js decides when. Everything here is scoped under
+     #app so the board's ELN theme (00-theme.css) is untouched. Tokens follow the Pythia design
+     (Claude Design "Logo mark refinement round 2"): warm neutrals, purple for the brand and
+     the curation meter, teal for support, red for contradiction. */
+  #app{display:none}
+  body.app{overflow:hidden;background:#f3f3f4}
+  body.app>:not(#app):not(script){display:none!important}
+  body.app #app{display:flex}
+  #app{
+    --pa-text:#1c1b22;--pa-bg:#f3f3f4;--pa-surface:#eaeaec;
+    --pa-divider:color-mix(in srgb,#1c1b22 40%,transparent);
+    --pa-n200:#e8e8ea;--pa-n500:#9a9aa1;--pa-n600:#7a7a82;--pa-n700:#5c5b63;--pa-n800:#403f47;
+    --pa-red:#ec3013;--pa-red1:#fff2ef;--pa-red7:#ae1800;--pa-red8:#7c1405;
+    --pa-p:#6b3fa0;--pa-pd:#5a3389;--pa-p1:#eee7f7;
+    --pa-t:#0e7c7b;--pa-td:#0a6564;--pa-t1:#e3f2f1;
+    --pa-font:"Archivo",system-ui,-apple-system,sans-serif;
+    position:fixed;inset:0;z-index:50;flex-direction:column;overflow:hidden;
+    background:var(--pa-bg);color:var(--pa-text);font:400 15px/1.4 var(--pa-font);
+    padding-top:env(safe-area-inset-top);
+    -webkit-text-size-adjust:100%;
+  }
+  #app *{box-sizing:border-box}
+  #app button,#app a.pa-btn{font-family:inherit;color:inherit;background:none;border:0;padding:0;margin:0;
+    cursor:pointer;text-align:left;touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+    text-decoration:none}
+  #app button:focus-visible,#app input:focus-visible,#app a:focus-visible{outline:2px solid var(--pa-p);outline-offset:2px}
+  #app a{color:var(--pa-pd)}
+  #app input::placeholder{color:var(--pa-n600)}
+  /* iPad: one reading column, centred. The rules and bars still run the full width. */
+  #app .pa-col{width:100%;max-width:720px;margin:0 auto}
+
+  /* ── headers ── */
+  #app .pa-root{flex:none;border-bottom:2px solid var(--pa-text)}
+  #app .pa-root>.pa-col{padding:0 16px 12px}
+  #app .pa-brand{display:flex;align-items:center;gap:10px;height:44px}
+  #app .pa-brand>svg{display:block;flex:none;width:28px;height:28px;background:var(--pa-p)}
+  #app .pa-word{font:800 22px/1 var(--pa-font);letter-spacing:-0.03em}
+  #app .pa-hbtns{margin-left:auto;display:flex;align-items:center;gap:14px}
+  #app .pa-hbtn{display:flex;align-items:center;gap:6px;height:44px;font:600 13px var(--pa-font)}
+  #app .pa-hbtn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2}
+  #app .pa-title{display:flex;align-items:baseline;gap:10px;padding:10px 0 12px}
+  #app .pa-title b{font:800 34px/1 var(--pa-font);letter-spacing:-0.03em}
+  #app .pa-title span{font:400 13px/1 var(--pa-font);color:var(--pa-n700)}
+  #app .pa-search{display:flex;gap:8px;align-items:center}
+  #app .pa-search label{flex:1;min-width:0;display:flex;align-items:center;gap:8px;height:44px;padding:0 12px;
+    background:var(--pa-surface);border:2px solid var(--pa-text)}
+  #app .pa-search svg{flex:none;width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2}
+  /* 16px: below it iOS zooms the whole page on focus */
+  #app .pa-search input{flex:1;min-width:0;border:0;background:none;outline:none;font:400 16px var(--pa-font);
+    color:var(--pa-text);-webkit-appearance:none;appearance:none}
+  #app .pa-search input::-webkit-search-cancel-button{display:none}
+  #app .pa-push{flex:none;border-bottom:2px solid var(--pa-text)}
+  #app .pa-push>.pa-col{display:flex;align-items:center;gap:8px;padding:0 16px 0 8px;height:52px}
+  #app .pa-back{display:flex;align-items:center;gap:2px;height:44px;min-width:44px;padding:0 8px 0 0;
+    font:600 15px var(--pa-font);max-width:60%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+  #app .pa-back svg{flex:none;width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2}
+  #app .pa-kick{margin-left:auto;font:700 11px/1 var(--pa-font);letter-spacing:.08em;text-transform:uppercase;color:var(--pa-n700)}
+
+  /* ── the scroll body ── */
+  #app .pa-scroll{flex:1;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+  #app .pa-cap{font:700 11px/1 var(--pa-font);letter-spacing:.08em;text-transform:uppercase;color:var(--pa-n700)}
+  #app .pa-sec{display:flex;align-items:baseline;gap:8px;padding:20px 16px 10px;border-top:2px solid var(--pa-text)}
+  #app .pa-sec b{font:800 20px/1 var(--pa-font)}
+  #app .pa-sec.sm b{font-size:18px}
+  #app .pa-sec span{font:400 13px var(--pa-font);color:var(--pa-n700)}
+  #app .pa-pad{height:24px}
+  #app .pa-seg{display:grid;gap:2px;background:var(--pa-text);border:2px solid var(--pa-text)}
+  #app .pa-seg button{display:flex;align-items:center;gap:6px;height:40px;padding:0 10px;background:var(--pa-bg);
+    color:var(--pa-text);font:700 13px var(--pa-font)}
+  #app .pa-seg button.on{background:var(--pa-text);color:var(--pa-bg)}
+  #app .pa-seg button i{font-style:normal;font-weight:400;font-variant-numeric:tabular-nums}
+  #app .pa-seg.kinds button{flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;height:46px;
+    padding:0 8px;font:700 12px/1 var(--pa-font)}
+  #app .pa-seg.kinds button i{font:400 12px/1 var(--pa-font)}
+  #app .pa-chips{display:flex;gap:6px;overflow-x:auto;margin:0 -16px;padding:0 16px;scrollbar-width:none}
+  #app .pa-chips::-webkit-scrollbar{display:none}
+  #app .pa-chip{flex:none;display:flex;align-items:center;gap:6px;height:34px;padding:0 12px;border:2px solid var(--pa-divider)!important;
+    font:600 13px var(--pa-font);white-space:nowrap}
+  #app .pa-chip i{font-style:normal;font-weight:400}
+  #app .pa-chip.on{border-color:var(--pa-p)!important;background:var(--pa-p);color:var(--pa-bg)}
+  #app .pa-listhd{display:flex;padding:16px 16px 8px}
+  #app .pa-listhd span:last-child{margin-left:auto}
+
+  /* rows: a paper, a slice, a related item */
+  #app .pa-row{display:flex;flex-direction:column;gap:6px;width:100%;padding:14px 16px;border-top:1px solid var(--pa-divider)}
+  #app .pa-list>.pa-row:first-child{border-top:0}
+  #app .pa-list{border-top:2px solid var(--pa-text)}
+  #app .pa-row:active,#app .pa-item:active,#app .pa-srow:active{background:var(--pa-surface)}
+  #app .pa-rtop{display:flex;align-items:center;gap:8px;width:100%}
+  #app .pa-key{font:700 13px/1 var(--pa-font)}
+  #app .pa-yr{font:400 12px/1 var(--pa-font);color:var(--pa-n700);font-variant-numeric:tabular-nums}
+  #app .pa-stub{font:700 10px/1 var(--pa-font);letter-spacing:.08em;text-transform:uppercase;padding:3px 5px;
+    border:1.5px dashed var(--pa-n600);color:var(--pa-n700)}
+  #app .pa-pm{margin-left:auto;display:flex;gap:2px}
+  #app .pa-pm i{width:9px;height:9px;border:1.5px solid var(--pa-n500)}
+  #app .pa-pm i.on{background:var(--pa-p);border-color:var(--pa-p)}
+  #app .pa-pm.lg{margin-left:0}
+  #app .pa-pm.lg i{width:12px;height:12px}
+  #app .pa-rtitle{font:600 16px/1.3 var(--pa-font);text-wrap:pretty}
+  #app .pa-rtitle.dim{color:var(--pa-n800)}
+  #app .pa-meta{font:400 12px/1.4 var(--pa-font);color:var(--pa-n700)}
+  #app .pa-item{display:flex;align-items:center;gap:12px;width:100%;padding:12px 16px;border-top:1px solid var(--pa-divider)}
+  #app .pa-item>span:first-child{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+  #app .pa-ik{font:600 12px/1.3 var(--pa-font);color:var(--pa-n700)}
+  #app .pa-it{font:400 15px/1.4 var(--pa-font);text-wrap:pretty}
+  #app .pa-it.b{font:600 16px/1.3 var(--pa-font)}
+  #app .pa-in{font:400 13px/1.4 var(--pa-font);color:var(--pa-n700);text-wrap:pretty}
+  #app .pa-n{font:600 13px var(--pa-font);color:var(--pa-n700);white-space:nowrap}
+  #app .pa-chev{flex:none;width:16px;height:16px;fill:none;stroke:var(--pa-n600);stroke-width:2}
+  #app .pa-more{display:block;width:100%;padding:14px 16px;border-top:1px solid var(--pa-divider);
+    font:600 14px var(--pa-font);color:var(--pa-pd)!important}
+  #app .pa-note{padding:24px 16px;font:400 15px/1.5 var(--pa-font);color:var(--pa-n700)}
+
+  /* topics: the broad ladder */
+  #app .pa-bar{display:flex;width:100%;height:8px;gap:2px;background:var(--pa-surface)}
+  #app .pa-bar.lg{height:10px}
+  #app .pa-bar .s{background:var(--pa-t)}
+  #app .pa-bar .c{background:var(--pa-red)}
+  #app .pa-bartx{display:flex;gap:14px;font:600 12px var(--pa-font)}
+  #app .pa-bartx.lg{gap:16px;font-size:13px}
+  #app .pa-bartx .s{color:var(--pa-td)}
+  #app .pa-bartx .c{color:var(--pa-red7)}
+  #app .pa-tag{font:700 11px/1 var(--pa-font);letter-spacing:.06em;text-transform:uppercase;padding:4px 6px}
+  #app .pa-tag.open{background:var(--pa-p1);color:var(--pa-pd)}
+  #app .pa-tag.ans{background:var(--pa-t1);color:var(--pa-td)}
+  #app .pa-rule{flex:none;height:24px;border-right:2px solid transparent}
+  #app .pa-rule.on{border-right-color:var(--pa-p)}
+
+  /* paper */
+  #app .pa-head{padding:16px 16px 14px;display:flex;flex-direction:column;gap:8px}
+  #app .pa-head h1{margin:0;font:800 26px/1.15 var(--pa-font);letter-spacing:-0.02em;text-wrap:pretty}
+  #app .pa-auth{font:400 14px/1.4 var(--pa-font);color:var(--pa-n800)}
+  #app .pa-pass{display:flex;align-items:center;gap:8px;margin-top:2px;font:600 13px var(--pa-font)}
+  #app .pa-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+  #app .pa-tags button{height:30px;padding:0 10px;border:1.5px solid var(--pa-divider);font:600 12px var(--pa-font);color:var(--pa-n800)}
+  #app .pa-links{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+  #app .pa-links a{display:flex;align-items:center;height:36px;padding:0 12px;background:var(--pa-p);color:var(--pa-bg);
+    font:700 13px var(--pa-font);text-decoration:none}
+  #app .pa-links a.ghost{background:none;color:var(--pa-text);border:2px solid var(--pa-text)}
+  #app .pa-abs{display:flex;align-items:center;width:100%;height:48px;padding:0 16px;border-top:2px solid var(--pa-text);
+    font:700 12px var(--pa-font);letter-spacing:.08em;text-transform:uppercase}
+  #app .pa-abs span{margin-left:auto;font:400 20px/1 var(--pa-font);letter-spacing:0}
+  #app .pa-abstx{margin:0;padding:0 16px 16px;font:400 15px/1.55 var(--pa-font);text-wrap:pretty}
+  #app .pa-sticky{position:sticky;top:0;z-index:2;background:var(--pa-bg);padding:10px 16px;border-top:2px solid var(--pa-text)}
+  #app .pa-srow{display:flex;gap:10px;width:100%;padding:12px 16px;border-top:1px solid var(--pa-divider)}
+  #app .pa-sid{flex:none;width:34px;font:700 13px/1.45 var(--pa-font)}
+  #app .pa-sid.question{color:var(--pa-pd)}
+  #app .pa-sid.method{color:var(--pa-n700)}
+  #app .pa-sbody{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+  #app .pa-srow .pa-chev{margin-top:2px}
+  #app .pa-q{font:italic 400 13px/1.45 var(--pa-font);color:var(--pa-td);text-wrap:pretty}
+  #app .pa-badges{display:flex;flex-wrap:wrap;gap:4px}
+  #app .pa-badges i{font:normal 600 11px/1 var(--pa-font);padding:4px 6px;background:var(--pa-surface);color:var(--pa-n800)}
+  #app .pa-badges i.s{background:var(--pa-t1);color:var(--pa-td)}
+  #app .pa-badges i.c{background:var(--pa-red1);color:var(--pa-red8)}
+  #app .pa-badges i.p{background:var(--pa-p1);color:var(--pa-pd)}
+
+  /* claim / broad / stub */
+  #app .pa-det{padding:16px;display:flex;flex-direction:column;gap:12px}
+  #app .pa-det h1{margin:0;font:800 24px/1.2 var(--pa-font);letter-spacing:-0.02em;text-wrap:pretty}
+  #app .pa-det h1.sm{font-size:22px}
+  #app .pa-dtop{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  #app .pa-kind{font:700 11px/1 var(--pa-font);letter-spacing:.08em;text-transform:uppercase;padding:5px 7px;
+    background:var(--pa-text);color:var(--pa-bg)}
+  #app .pa-kind.question,#app .pa-kind.broad{background:var(--pa-p);color:var(--pa-bg)}
+  #app .pa-kind.method,#app .pa-kind.stub{background:var(--pa-n200);color:var(--pa-text)}
+  #app .pa-src{height:32px;font:600 13px var(--pa-font);color:var(--pa-pd)!important;text-decoration:underline;text-underline-offset:3px}
+  #app .pa-dtop .pa-tag{margin-left:auto;padding:5px 7px}
+  #app .pa-sub{font:400 14px/1.45 var(--pa-font);color:var(--pa-n700);text-wrap:pretty}
+  #app .pa-quote{margin:0 16px 16px;padding:16px;background:var(--pa-t1);display:flex;flex-direction:column;gap:8px}
+  #app .pa-quote .pa-cap{color:var(--pa-td);display:flex}
+  #app .pa-quote .pa-cap a{margin-left:auto;color:var(--pa-td)}
+  #app .pa-quote>span:last-child{font:italic 400 17px/1.45 var(--pa-font);text-wrap:pretty}
+  #app .pa-stance{display:flex;flex-direction:column;gap:10px;width:100%;padding:16px;border-top:2px solid var(--pa-text)}
+  #app .pa-stance>span:first-child{display:flex;width:100%;align-items:baseline}
+  #app .pa-stance b{font:800 20px/1 var(--pa-font)}
+  #app .pa-stance em{margin-left:auto;display:flex;align-items:center;gap:2px;font:normal 600 13px var(--pa-font);color:var(--pa-pd)}
+  #app .pa-stance em svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2}
+
+  /* the stance ledger */
+  #app .pa-lgn{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px;background:var(--pa-text);
+    border-top:2px solid var(--pa-text);border-bottom:2px solid var(--pa-text)}
+  #app .pa-lgn>div{background:var(--pa-bg);padding:12px 16px 14px;display:flex;flex-direction:column;gap:6px}
+  #app .pa-lgn>div.s{box-shadow:inset 0 6px 0 var(--pa-t)}
+  #app .pa-lgn>div.c{box-shadow:inset 0 6px 0 var(--pa-red)}
+  #app .pa-lgn b{font:800 44px/1 var(--pa-font);font-variant-numeric:tabular-nums;margin-top:8px}
+  #app .pa-lgn .s b{color:var(--pa-td)}
+  #app .pa-lgn .c b{color:var(--pa-red7)}
+  #app .pa-lgn span{font:600 13px var(--pa-font)}
+  #app .pa-lghd{display:flex;align-items:baseline;gap:8px;padding:18px 16px 10px}
+  #app .pa-lghd i{width:10px;height:10px;align-self:center}
+  #app .pa-lghd i.s{background:var(--pa-t)}
+  #app .pa-lghd i.c{background:var(--pa-red)}
+  #app .pa-lghd b{font:800 20px/1 var(--pa-font)}
+  #app .pa-lgempty{padding:12px 16px 18px;border-top:1px solid var(--pa-divider);font:400 14px/1.45 var(--pa-font);color:var(--pa-n700)}
+  #app .pa-lgrow .pa-rtop{flex-wrap:wrap}
+  #app .pa-lgrow .pa-key{font-size:13px;line-height:1.2}
+  #app .pa-wild{margin-left:auto;font:600 11px/1 var(--pa-font);padding:4px 6px;border:1.5px dashed var(--pa-n600);color:var(--pa-n700)}
+  #app .pa-lgend{height:2px;background:var(--pa-text)}
+
+  /* ── the tab bar ── */
+  #app .pa-tabs{flex:none;border-top:2px solid var(--pa-text);background:var(--pa-bg);
+    padding-bottom:max(env(safe-area-inset-bottom),8px)}
+  #app .pa-tabs>.pa-col{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+  #app .pa-tabs button{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:12px 12px 6px;
+    box-shadow:inset 0 4px 0 transparent;color:var(--pa-n600);font:700 11px/1 var(--pa-font);letter-spacing:.06em;text-transform:uppercase}
+  #app .pa-tabs button.on{box-shadow:inset 0 4px 0 var(--pa-p);color:var(--pa-text)}
+  #app .pa-tabs svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2}
+  #app.kbd .pa-tabs{display:none}
+
+  /* ── the filter sheet ── */
+  #app .pa-sheet{position:absolute;inset:0;z-index:40;display:flex;flex-direction:column;background:rgba(32,30,29,.45)}
+  #app .pa-sheet>div:first-child{flex:1}
+  #app .pa-sheetb{background:var(--pa-bg);border-top:2px solid var(--pa-text);max-height:85%;overflow:auto;
+    padding:8px 0 max(env(safe-area-inset-bottom),20px)}
+  #app .pa-sheetb>.pa-col{padding:0 16px;display:flex;flex-direction:column;gap:12px}
+  #app .pa-sheethd{display:flex;align-items:center;height:48px}
+  #app .pa-sheethd b{font:800 22px/1 var(--pa-font)}
+  #app .pa-sheethd button{margin-left:auto;width:44px;height:44px;display:flex;align-items:center;justify-content:flex-end}
+  #app .pa-sheethd svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2}
+  #app .pa-radio{display:flex;align-items:center;gap:12px;width:100%;height:48px;border-bottom:1px solid var(--pa-divider);font:400 16px var(--pa-font)}
+  #app .pa-radio>i{flex:none;width:18px;height:18px;border:2px solid var(--pa-text)}
+  #app .pa-radio>i.on{background:var(--pa-p)}
+  #app .pa-radio>span{flex:1}
+  #app .pa-radio>em{font:normal 400 13px var(--pa-font);color:var(--pa-n700)}
+  #app .pa-radio.sub{padding-left:22px}
+  #app .pa-go{display:flex;align-items:center;height:52px;padding:0 16px!important;margin-top:6px!important;
+    background:var(--pa-p)!important;color:var(--pa-bg)!important;font:700 15px var(--pa-font)}
+  #app .pa-go:active{background:oklch(0.36 0.15 300)!important}
+  /* multi-pick filters: square checks with a tick, wrapping chips, find boxes, a year range */
+  #app .pa-check>i{position:relative}
+  #app .pa-check>i.on::after{content:"";position:absolute;left:4px;top:0;width:5px;height:10px;
+    border:solid var(--pa-bg);border-width:0 2px 2px 0;transform:rotate(45deg)}
+  #app .pa-radio.pa-check>span{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+  #app .pa-fcap{display:flex;align-items:baseline;gap:8px;margin-top:10px}
+  #app .pa-fcap em{font:normal 400 12px var(--pa-font);letter-spacing:0;text-transform:none;color:var(--pa-n600)}
+  #app .pa-fwrap{display:flex;flex-wrap:wrap;gap:6px}
+  #app .pa-flist{border-top:1px solid var(--pa-divider)}
+  #app .pa-flist .pa-more{margin:0}
+  #app .pa-flist .pa-note{padding:12px 0}
+  #app .pa-chip svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.5}
+  #app .pa-ffind{display:flex;align-items:center;gap:8px;height:42px;padding:0 12px;background:var(--pa-surface);border:2px solid var(--pa-text)}
+  #app .pa-ffind svg{flex:none;width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2}
+  #app .pa-ffind input{flex:1;min-width:0;border:0;background:none;outline:none;font:400 16px var(--pa-font);
+    color:var(--pa-text);-webkit-appearance:none;appearance:none}
+  #app .pa-ffind input::-webkit-search-cancel-button{display:none}
+  #app .pa-years{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  #app .pa-years label{display:flex;flex-direction:column;gap:4px;font:600 12px var(--pa-font);color:var(--pa-n700)}
+  #app .pa-years select{height:44px;padding:0 10px;border:2px solid var(--pa-text);border-radius:0;background:var(--pa-bg);
+    color:var(--pa-text);font:600 16px var(--pa-font);-webkit-appearance:none;appearance:none}
+  #app .pa-years label{position:relative}
+  #app .pa-years label::after{content:"";position:absolute;right:16px;bottom:18px;width:7px;height:7px;pointer-events:none;
+    border:solid var(--pa-text);border-width:0 2px 2px 0;transform:rotate(45deg)}
+  #app .pa-fclear{margin-left:auto;height:44px;padding:0 12px;font:600 13px var(--pa-font);color:var(--pa-pd)}
+  #app .pa-fclear+button{margin-left:0!important}
+  #app .pa-sheetb .pa-go{position:sticky;bottom:0;z-index:1;box-shadow:0 0 0 12px var(--pa-bg)}
+
+  /* the board's way back to the app */
+  #hud #appBtn{font-weight:700}

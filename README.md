@@ -1,4 +1,7 @@
-# litgraph
+# Pythia
+
+*(The project name; the repo, the `litgraph` package and the `lit` command keep
+their original names.)*
 
 A knowledge graph over the scientific literature. You read a paper, and the
 claims, questions, and methods inside it become nodes in a graph: each one
@@ -120,7 +123,7 @@ that URL on the phone, then use **Add to Home Screen**:
 lit serve --host "$(tailscale ip -4)" --root /path/to/your/library
 ```
 
-The installed app launches standalone with its own LitGraph icon. The service
+The installed app launches standalone with its own Pythia icon. The service
 must remain reachable to browse PDFs and use live curation features; the static
 `lit build` output also carries the manifest and icons for HTTPS hosting.
 

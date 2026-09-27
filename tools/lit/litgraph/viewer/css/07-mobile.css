@@ -44,8 +44,8 @@
        halve the indent and keep the rule, which is what actually carries the depth */
     .bnest{margin-left:5px;padding-left:5px}
     .bfbar .bffold{padding:4px 10px}
-    .card:active{border-color:#b8c3cc}            /* tap feedback (replaces the lost :hover cue) */
-    .slice.drillable:active{background:#e9eef2}
+    .card:active{border-color:#bcbcc2}            /* tap feedback (replaces the lost :hover cue) */
+    .slice.drillable:active{background:#eaeaec}
     body{--grip:22px}                             /* a seam a finger can actually catch */
   }
 

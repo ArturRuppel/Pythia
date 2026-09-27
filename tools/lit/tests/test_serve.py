@@ -122,6 +122,9 @@ def test_the_hud_slides_away_on_scroll_without_moving_the_board(srv):
     assert "body{--hud-h:46px;--hud-top:var(--hud-h)}" in text
     assert "body.hud-off{--hud-top:0px}" in text          # the dock grows into the space too
     assert "top:var(--hud-top)" in text
+    # Serve-only controls are revealed after the initial measurement. If that makes the HUD wrap,
+    # its own resize (not merely a window resize) must refresh the board's protected top inset.
+    assert 'new ResizeObserver(measure).observe(hud)' in text
 
 
 def test_the_board_and_the_pdf_zoom_separately(srv):
