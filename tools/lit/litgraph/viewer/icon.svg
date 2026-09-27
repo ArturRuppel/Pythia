@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
   <!-- Pythia: the tripod the oracle spoke from (Claude Design, "Logo mark refinement round 2", 3a).
        Drawn on the 48-unit grid; the PNGs beside it are rendered from this file (rsvg-convert).
-       Brand purple #6e3ead = oklch(0.48 0.17 300); the mark is the app's paper white #f3f2f2. -->
-  <rect width="48" height="48" fill="#6e3ead"/>
-  <g fill="#f3f2f2">
+       Family purple #6b3fa0 (shared with Iris); the mark is the paper white #f3f3f4. -->
+  <rect width="48" height="48" fill="#6b3fa0"/>
+  <g fill="#f3f3f4">
     <rect x="8" y="10" width="32" height="7"/>
     <rect x="11" y="29" width="26" height="3"/>
     <path d="M12 17h5l-6 23H6zM31 17h5l6 23h-5z"/>
