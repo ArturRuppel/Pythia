@@ -19,7 +19,7 @@ viewer fetches its endpoints with *relative* URLs (``pdfs.json``, ``pdf/<key>.pd
 ending in ``/`` — hence ``/litgraph/`` — so those resolve under ``/litgraph/``.
 
 The litgraph data repo is located via the ``LITGRAPH_ROOT`` env var, falling back to
-``~/Projects/literature_graph_database``. Its ``config.toml`` (if present) supplies the PDF
+``~/Projects/Pythia-database``. Its ``config.toml`` (if present) supplies the PDF
 directory, exactly as the ``lit`` CLI resolves it.
 """
 
@@ -42,7 +42,7 @@ from litgraph.pdfview import PAGE_WIDTH, page_sizes, page_words, preview, render
 from litgraph.preview import isolate
 from litgraph.serve import _CITEKEY, _PDF_NAME, _PNG_NAME, _SLICE_ID, _valid_rects, locate_quote
 
-_DEFAULT_ROOT = "~/Projects/literature_graph_database"
+_DEFAULT_ROOT = "~/Projects/Pythia-database"
 
 
 def _resolve_paths():
