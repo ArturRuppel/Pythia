@@ -12,7 +12,7 @@
   #hud b{font-size:13px;color:#fff}
   #hud .widthctl{display:flex;align-items:center;gap:8px;
     font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#adadb4}
-  #hud .widthctl input{width:150px;accent-color:#b79ce6;cursor:pointer}
+  #hud .widthctl input{width:150px;accent-color:var(--home-mid);cursor:pointer}
   #hud .widthctl .val{min-width:34px;text-align:right;color:#dedee2;letter-spacing:0}
   /* board zoom — the camera control, beside width, which is the LAYOUT control. Same shape as
      width on purpose: both are continuous, both want to be swept rather than counted up to, and
@@ -22,7 +22,7 @@
      `margin-left:auto` here (rather than on .widthctl) parks the pair together at the bar's end. */
   #hud .zoomctl{margin-left:auto;display:flex;align-items:center;gap:8px;
     font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#adadb4}
-  #hud .zoomctl input{width:120px;accent-color:#b79ce6;cursor:pointer}
+  #hud .zoomctl input{width:120px;accent-color:var(--home-mid);cursor:pointer}
   #hud .zoomctl .zval{min-width:38px;text-align:right;color:#dedee2;letter-spacing:0;
     font-variant-numeric:tabular-nums;cursor:pointer}
   #hud .zoomctl .zval:hover{color:#fff;text-decoration:underline}
@@ -48,7 +48,7 @@
   #searchResults .sr-more{padding:6px 9px 4px;font-size:9px;color:var(--faint);letter-spacing:.4px}
   /* topic-mode banner: names what's being shown so a topic search never reads as a text match */
   #searchResults .sr-topic{padding:6px 9px 5px;font-size:9px;letter-spacing:.5px;
-    text-transform:uppercase;color:#6b3fa0;border-bottom:1px solid var(--line);margin-bottom:3px}
+    text-transform:uppercase;color:var(--hm-home);border-bottom:1px solid var(--line);margin-bottom:3px}
 
   /* a paper the search jumped to: a brief highlight so the eye lands on it */
   @keyframes foundflash{

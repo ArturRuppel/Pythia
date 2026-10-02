@@ -32,7 +32,7 @@ include = ["litgraph*"]
 [tool.setuptools.package-data]
 # viewer/* does not recurse, so the css/ and js/ modules the build inlines need globs of
 # their own — without them a wheel ships a shell with nothing to put in it.
-litgraph = ["viewer/*", "viewer/css/*.css", "viewer/js/*.js"]
+litgraph = ["viewer/*", "viewer/css/*.css", "viewer/js/*.js", "viewer/harmonia/*.css"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

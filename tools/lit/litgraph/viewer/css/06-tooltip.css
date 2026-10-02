@@ -45,7 +45,7 @@
      chrome beside the key, the page number and four tools, and the wheel is the fine control. */
   .pw-zoom{display:flex;align-items:center;gap:5px}
   .pw-zoom[hidden]{display:none}
-  .pw-zoom input{width:66px;height:12px;margin:0;accent-color:#9a74cc;cursor:pointer}
+  .pw-zoom input{width:66px;height:12px;margin:0;accent-color:var(--home-mid);cursor:pointer}
   .pw-zoom .pz-val{font-size:9px;min-width:30px;text-align:right;color:var(--faint);
     font-variant-numeric:tabular-nums;cursor:pointer}
   .pw-zoom .pz-val:hover{color:#1c1b22}
@@ -75,14 +75,14 @@
   .pw-find input{flex:1;min-width:0;border:1px solid var(--line);border-radius:4px;
     background:var(--panel);color:var(--ink);font:inherit;font-size:10px;padding:2px 6px;
     user-select:text;-webkit-user-select:text}
-  .pw-find input:focus{outline:none;border-color:#9a74cc}
+  .pw-find input:focus{outline:none;border-color:var(--home-mid)}
   .pw-find .pw-fn{flex:none;min-width:42px;text-align:right;color:var(--faint);
     font-variant-numeric:tabular-nums}
   .pw-fb{flex:none;cursor:pointer;border:0;background:transparent;color:var(--faint);font:inherit;
     font-size:11px;line-height:1;padding:2px 5px;border-radius:3px}
   .pw-fb:hover:not(:disabled){color:#1c1b22;background:#dfdfe3}
   .pw-fb:disabled{opacity:.3;cursor:default}
-  .pw-fh{position:absolute;background:#6ea8d833;outline:1px solid #9a74cc;
+  .pw-fh{position:absolute;background:#6ea8d833;outline:1px solid var(--home-mid);
     mix-blend-mode:multiply;border-radius:1px;pointer-events:none}
   .pw-fh.on{background:#ff9b3d55;outline:1.5px solid #f2760a}
   .pw-text{position:absolute;inset:0;line-height:1;pointer-events:none}

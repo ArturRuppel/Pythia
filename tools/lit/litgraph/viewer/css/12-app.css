@@ -3,20 +3,20 @@
      Reading · Search), each tab its own push stack of screens (paper, claim, stance ledger).
      body.app swaps it in for the board; 19-app.js decides when. Everything here is scoped under
      #app so the board's ELN theme (00-theme.css) is untouched. Tokens follow the Pythia design
-     (Claude Design "Logo mark refinement round 2"): warm neutrals, purple for the brand and
-     the curation meter, teal for support, red for contradiction. */
+     (Claude Design "Logo mark refinement round 2"), with the values now read from the family sheet:
+     neutral greys, marine for the brand and the curation meter, teal for support, red for contradiction. */
   #app{display:none}
   body.app{overflow:hidden;background:#f3f3f4}
   body.app>:not(#app):not(script):not(.pw-side):not(#dockGrip):not(#dockEmpty){display:none!important}
   body.app #app{display:flex}
   #app{
-    --pa-text:#1c1b22;--pa-bg:#f3f3f4;--pa-surface:#eaeaec;
-    --pa-divider:color-mix(in srgb,#1c1b22 40%,transparent);
-    --pa-n200:#e8e8ea;--pa-n500:#9a9aa1;--pa-n600:#7a7a82;--pa-n700:#5c5b63;--pa-n800:#403f47;
+    --pa-text:var(--hm-ink);--pa-bg:var(--hm-ground);--pa-surface:var(--hm-sunk);
+    --pa-divider:var(--hm-divider);
+    --pa-n200:var(--hm-n200);--pa-n500:#9a9aa1;--pa-n600:var(--hm-n600);--pa-n700:var(--hm-n700);--pa-n800:var(--hm-n800);
     --pa-red:#ec3013;--pa-red1:#fff2ef;--pa-red7:#ae1800;--pa-red8:#7c1405;
-    --pa-p:#6b3fa0;--pa-pd:#5a3389;--pa-p1:#eee7f7;
-    --pa-t:#0e7c7b;--pa-td:#0a6564;--pa-t1:#e3f2f1;
-    --pa-font:"Archivo",system-ui,-apple-system,sans-serif;
+    --pa-p:var(--hm-home);--pa-pd:var(--hm-home-hover);--pa-p1:var(--hm-home-soft);
+    --pa-t:var(--hm-teal);--pa-td:var(--hm-teal-hover);--pa-t1:var(--hm-teal-soft);   /* teal means support here, whatever the home colour */
+    --pa-font:var(--hm-font);
     position:fixed;inset:0;z-index:50;flex-direction:column;overflow:hidden;
     background:var(--pa-bg);color:var(--pa-text);font:400 15px/1.4 var(--pa-font);
     padding-top:env(safe-area-inset-top);

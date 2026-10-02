@@ -1,8 +1,13 @@
-<style>
   :root{
-    /* Family light theme (shared with Mnemosyne, Iris, Calliope). The variable NAMES are load-bearing: JS reads --grounded / --cross /
-       --question via cssv() to stroke the SVG edges, so only their VALUES change here. */
-    --bg:#f3f3f4;--ink:#1c1b22;--dim:#5c5b63;--faint:#7a7a82;--line:#d4d4d8;--panel:#ffffff;
+    /* Family light theme: the chrome values come from the family sheet (harmonia/harmonia.css, inlined ahead of
+       this file by build.py), with marine as Pythia's home colour. The variable NAMES are load-bearing: JS reads
+       --grounded / --cross / --question via cssv() to stroke the SVG edges, so only their VALUES change here.
+       The claim-kind colours below are data, not chrome, and stay the viewer's own. */
+    --bg:var(--hm-ground);--ink:var(--hm-ink);--dim:var(--hm-dim);--faint:var(--hm-faint);--line:var(--hm-n300);--panel:var(--hm-raised);
+    /* steps of the home colour that the sheet has no token for */
+    --home-tint:color-mix(in srgb,var(--hm-home) 7%,#fff);
+    --home-edge:color-mix(in srgb,var(--hm-home) 35%,#fff);
+    --home-mid:color-mix(in srgb,var(--hm-home) 55%,#fff);
     --floor:#b5822f;--model:#8a6db1;--grounded:#27735f;--borrowed:#286b9f;
     --question:#a15c1e;--broad:#7a4fb0;--cross:#9a3b3b;
     --plausible:#8a97a4;

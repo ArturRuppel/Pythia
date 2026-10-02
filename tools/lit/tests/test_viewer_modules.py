@@ -46,6 +46,17 @@ def test_page_is_self_contained():
     assert not re.search(r'<link[^>]+\bstylesheet', page), "the page loads an external stylesheet"
 
 
+def test_family_sheet_is_inlined_ahead_of_the_viewer_css():
+    """css/00-theme.css maps its names onto the family sheet's --hm-* tokens, so the sheet has
+    to be in the page, and in front, so the viewer's own rules still win."""
+    page = template_html()
+    assert "/*@LITGRAPH_FAMILY_CSS@*/" not in page, "the family marker survived assembly"
+    family = (_VIEWER / "harmonia" / "harmonia.css").read_text(encoding="utf-8")
+    first = sorted((_VIEWER / "css").glob("*.css"))[0].read_text(encoding="utf-8")[:-1]
+    assert family in page, "the family sheet is not inlined"
+    assert page.index(family) < page.index(first), "the family sheet must precede the viewer's CSS"
+
+
 def test_graph_slot_survives_the_split():
     """render_html swaps this token region for the payload; losing it breaks every build."""
     page = template_html()

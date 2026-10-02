@@ -121,9 +121,9 @@
   /* curator tags — a container filter axis; ride in the header (collapsed or open), click one to
      search it. As a single flex child they wrap onto their own header line when the row is full. */
   .ctags{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
-  .ctag{font-size:8px;letter-spacing:.3px;color:#5a3389;background:#f4f0f9;border:1px solid #dccdef;
+  .ctag{font-size:8px;letter-spacing:.3px;color:var(--hm-home-hover);background:var(--home-tint);border:1px solid var(--hm-home-line);
     border-radius:999px;padding:2px 7px;cursor:pointer}
-  .ctag:hover{background:#eee7f7;border-color:#cbb8e6;color:#6b3fa0}
+  .ctag:hover{background:var(--hm-home-soft);border-color:var(--home-edge);color:var(--hm-home)}
   /* open card: body is inert; the header collapses, the slice rows drill */
   .card.open{cursor:default}
   .card.open .chd{cursor:pointer}

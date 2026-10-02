@@ -28,7 +28,7 @@
     background:transparent;transition:background .12s,top .18s ease}
   #dockGrip::after{content:"";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
     width:3px;height:38px;border-radius:3px;background:#c4c4ca;transition:background .12s}
-  #dockGrip:hover,body.dock-resizing #dockGrip{background:#9a74cc}
+  #dockGrip:hover,body.dock-resizing #dockGrip{background:var(--home-mid)}
   #dockGrip:hover::after,body.dock-resizing #dockGrip::after{background:#fff}
   body.dock-resizing{user-select:none}            /* the cursor is set per axis from JS */
   body.dock-resizing .pw-side{pointer-events:none}

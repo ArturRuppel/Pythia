@@ -273,6 +273,8 @@ _PWA_ASSETS = ("manifest.webmanifest", "icon-192.png", "icon-512.png",
                "apple-touch-icon.png")
 _TOKEN_START = "/*__GRAPH_JSON__*/"
 _TOKEN_END = "/*__END__*/"
+_HARMONIA = _VIEWER / "harmonia" / "harmonia.css"
+_FAMILY_MARK = "/*@LITGRAPH_FAMILY_CSS@*/"
 _CSS_MARK = "/*@LITGRAPH_CSS@*/"
 _JS_MARK = "/*@LITGRAPH_JS@*/"
 
@@ -302,7 +304,15 @@ def template_html() -> str:
         if mark not in shell:
             raise BuildError(f"viewer/shell.html has lost its {mark} marker")
         shell = shell.replace(mark, _concat(sub))
-    return shell
+    # The family sheet goes in front of the viewer's own CSS, inside the same one <style>, so
+    # every rule of the viewer's still wins. viewer/harmonia/harmonia.css is a vendored,
+    # byte-identical copy of the Harmonia repo's sheet (edit there, copy out); it carries the
+    # --hm-* tokens that css/00-theme.css maps its own names onto.
+    if _FAMILY_MARK not in shell:
+        raise BuildError(f"viewer/shell.html has lost its {_FAMILY_MARK} marker")
+    if not _HARMONIA.is_file():
+        raise BuildError("viewer/harmonia/harmonia.css is missing — the install is incomplete")
+    return shell.replace(_FAMILY_MARK, _HARMONIA.read_text(encoding="utf-8"))
 
 
 def render_html(payload: str) -> str:
