@@ -35,12 +35,12 @@
   /* the centering padding exists to hold the landing column mid-screen; with nothing in it that
      is half a screen of margin in front of the ladder you were meant to land on */
   body.landing-vacant #stage{padding-left:40px}
-  .col .colhd{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--faint);
+  .col .colhd{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--faint);
     padding-left:4px;margin-bottom:-4px}
   /* the release-everything exit: puts every shown claim away and dismisses every stub summoned by
      name. Present only while there is something to release (see syncLanding). */
   .col .colhd .hd-clear{margin-left:7px;padding:1px 7px;border:1px solid var(--line);
-    border-radius:999px;cursor:pointer;letter-spacing:.6px}
+    border-radius: 0;cursor:pointer;letter-spacing:.6px}
   .col .colhd .hd-clear:hover{background:#f7e8e8;border-color:#e0bcbc;color:#a33}
 
   /* Provenance, landing column only: the shown claims this paper answers to. With the column flat
@@ -48,12 +48,12 @@
      tells you whose hoisted block a card belongs to when two claims are gathered at the top. No
      reason to state means no strip (.plain), rather than a dashed rule under every one of 54 cards. */
   .card .cprov{display:flex;align-items:center;gap:6px;padding:3px 8px 4px 11px;
-    border-top:1px dashed var(--line);font-size:8px;letter-spacing:.4px;color:var(--faint)}
+    border-top:1px dashed var(--line);font-size:11px;letter-spacing:.4px;color:var(--faint)}
   .card.plain .cprov{display:none}
   .card .cvia{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
   /* paper card */
-  .card{position:relative;border:1.5px solid var(--line);border-radius:12px;background:var(--panel);
+  .card{position:relative;border:1px solid var(--line);border-top:2px solid var(--hm-ink);border-radius: 0;background:var(--panel);
     overflow:hidden;cursor:pointer;transition:border-color .15s,box-shadow .15s}
   .card:hover{border-color:#bcbcc2}
   .card.curated{border-style:solid}
@@ -61,7 +61,7 @@
      card's pointer cursor in both states (.card.open would otherwise make it read as inert) */
   .card.stub{border-style:dashed;opacity:.92}
   .card.stub.open{cursor:pointer;opacity:1}
-  .card.focus{border-color:var(--grounded);box-shadow:0 0 0 1px var(--grounded),0 6px 20px rgba(28,27,34,.14)}
+  .card.focus{border-color:var(--grounded);box-shadow:0 0 0 1px var(--grounded)}
   /* hover counterpart: the paper(s) an edge of the hovered claim touches */
   .card.hl{border-color:var(--borrowed);box-shadow:0 0 0 1px var(--borrowed)}
   .bn.hl{box-shadow:0 0 0 1.5px var(--borrowed)}
@@ -72,15 +72,15 @@
   .ckey{font-size:11px;font-weight:700;cursor:help}
   /* the paper classifier (original / perspective / methods …) rides in the header at all
      times — collapsed or open — so a paper's kind is legible without focusing it */
-  .ctype{display:inline-block;font-size:7px;padding:1px 5px;border-radius:4px;font-weight:700;
+  .ctype{display:inline-block;font-size:11px;padding:1px 5px;border-radius: 0;font-weight:700;
     color:#fff;background:var(--dim)}
   .ctype.original{background:#5d7290}.ctype.methods{background:var(--floor)}
   .ctype.perspective{background:#8a6db1}.ctype.review{background:#2f8f7f}
   .ctype.commentary{background:#a15c1e}
-  .cyr{display:none;margin-left:auto;font-size:9px;color:var(--faint)}
+  .cyr{display:none;margin-left:auto;font-size:11px;color:var(--faint)}
   /* expanded-only body (revealed when a curated card is focused → .open) */
-  .ctitle{display:none;padding:0 11px 2px;font-size:10px;color:var(--dim);line-height:1.32}
-  .cauth{display:none;padding:4px 11px 6px;font-size:9px;color:var(--faint)}
+  .ctitle{display:none;padding:0 11px 2px;font-size:11px;color:var(--dim);line-height:1.32}
+  .cauth{display:none;padding:4px 11px 6px;font-size:11px;color:var(--faint)}
   .cauth .star{color:var(--floor)}
   .cauth .anum{color:var(--faint);opacity:.7;font-style:italic}
   /* the abstract: inline in the open card, everywhere. It used to be touch-only, on the theory
@@ -90,16 +90,16 @@
      Behind its own fold since: the open card shows the WORD (.cabsx), the paragraph follows on a
      click. The caret is CSS rather than markup because the toggle flips a class on every card of
      this paper at once (cardClick) and never re-renders one. */
-  .cabsx{display:none;align-items:center;gap:5px;padding:0 11px 8px;font-size:8px;
+  .cabsx{display:none;align-items:center;gap:5px;padding:0 11px 8px;font-size:11px;
     letter-spacing:1.2px;text-transform:uppercase;color:var(--faint);cursor:pointer}
   .cabsx:hover{color:var(--dim)}
-  .cabsx .acar{font-size:7px}
+  .cabsx .acar{font-size:11px}
   .cabsx .acar::before{content:"\25b8"}                 /* ▸ */
   .card.absopen .cabsx .acar::before{content:"\25be"}   /* ▾ */
-  .cabs{display:none;padding:0 11px 8px;font-size:10px;color:var(--dim);line-height:1.4}
+  .cabs{display:none;padding:0 11px 8px;font-size:11px;color:var(--dim);line-height:1.4}
   /* the venue line, expanded stubs only: a curated paper has no `journal` field at all
      (SCHEMA §3 — the venue lives in the citekey), so this has nothing to say on one */
-  .cbib{display:none;padding:0 11px 8px;font-size:9px;color:var(--faint);font-style:italic}
+  .cbib{display:none;padding:0 11px 8px;font-size:11px;color:var(--faint);font-style:italic}
   .card.open .cyr{display:inline-block}
   .card.open .ctitle,.card.open .cauth{display:block}
   .card.open .cabsx{display:flex}
@@ -111,18 +111,18 @@
      sentence of `note`) read on the CLOSED card, and the rest of the pitch follows when it opens.
      Placed after the .card.open rules so equal specificity resolves this way. */
   .card.aim .ctitle{display:block;padding:3px 11px 0;font-size:11px;font-weight:600;color:var(--ink)}
-  .cpunch{padding:3px 11px 9px;font-size:10px;color:var(--dim);line-height:1.35}
+  .cpunch{padding:3px 11px 9px;font-size:11px;color:var(--dim);line-height:1.35}
   /* the standing counts — `lit programme`'s report on one line, above the rows. It leads with what
      is weakest on purpose: the assumptions nothing checks are what a jury finds first anyway. */
-  .cstat,.cnote{display:none;padding:0 11px 9px;font-size:9px;color:var(--faint);line-height:1.5}
-  .cnote{font-size:10px;color:var(--dim);line-height:1.4;padding-bottom:7px}
+  .cstat,.cnote{display:none;padding:0 11px 9px;font-size:11px;color:var(--faint);line-height:1.5}
+  .cnote{font-size:11px;color:var(--dim);line-height:1.4;padding-bottom:7px}
   .card.open .cstat,.card.open .cnote{display:block}
   .cstat .warn{color:var(--risk);font-weight:600}
   /* curator tags — a container filter axis; ride in the header (collapsed or open), click one to
      search it. As a single flex child they wrap onto their own header line when the row is full. */
   .ctags{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
-  .ctag{font-size:8px;letter-spacing:.3px;color:var(--hm-home-hover);background:var(--home-tint);border:1px solid var(--hm-home-line);
-    border-radius:999px;padding:2px 7px;cursor:pointer}
+  .ctag{font-size:11px;letter-spacing:.3px;color:var(--hm-home-hover);background:var(--home-tint);border:1px solid var(--hm-home-line);
+    border-radius: 0;padding:2px 7px;cursor:pointer}
   .ctag:hover{background:var(--hm-home-soft);border-color:var(--home-edge);color:var(--hm-home)}
   /* open card: body is inert; the header collapses, the slice rows drill */
   .card.open{cursor:default}

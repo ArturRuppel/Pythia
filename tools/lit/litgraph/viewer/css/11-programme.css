@@ -12,18 +12,18 @@
   /* a SECTION headline is prose, not a category: the uppercase micro-label an entry group wears
      is right for "assumptions — nothing checks these" and wrong for a sentence you are meant to
      read. Same row, same fold, different voice. */
-  .slices .sgrp.nsec{font-size:10px;letter-spacing:0;text-transform:none;color:var(--dim);
+  .slices .sgrp.nsec{font-size:11px;letter-spacing:0;text-transform:none;color:var(--dim);
     font-weight:600;line-height:1.35;align-items:flex-start;margin:11px 0 4px;padding-top:7px}
   .slices .sgrp.nsec .gcar{margin-top:2px}
-  .slices .sgrp.nsec .gct{margin-top:1px;font-size:8px}
+  .slices .sgrp.nsec .gct{margin-top:1px;font-size:11px}
   .slices .sgrp.nsec:hover{color:var(--ink)}
   /* a bullet: the sentence at reading size, its id small and quiet (it is an edge anchor, not a
      label the reader needs), and the count of what stands behind it pushed to the right */
   .slice.nbul{padding:5px 6px;background:#f6f6f7;cursor:pointer}
   .slice.nbul:hover{background:#eaeaec}
-  .slice.nbul .stx{font-size:10px;line-height:1.42}
+  .slice.nbul .stx{font-size:11px;line-height:1.42}
   .sid.nb{background:var(--faint);font-weight:600;opacity:.72}
-  .nrf{flex:none;margin-left:5px;margin-top:1px;padding:0 5px;border-radius:6px;font-size:7px;
+  .nrf{flex:none;margin-left:5px;margin-top:1px;padding:0 5px;border-radius: 0;font-size:11px;
     font-weight:700;color:var(--dim);background:#fff;border:1px solid var(--line)}
   /* a line in a grant with nothing under it — the thing a reader of this card is hunting for */
   .nrf.none{color:var(--risk);border-color:#e2c4c4;background:#fdf6f6}

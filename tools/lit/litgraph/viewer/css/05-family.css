@@ -3,14 +3,14 @@
      IS the `leads_to` edge — containment drawn as containment, which is why the band no longer
      draws rungs as arrows. Deliberately quiet chrome: a hairline and a wash, because the thing
      that must read at a glance is the nesting, not the boxes' own borders. */
-  .bfam{position:relative;border:1px solid #ddd2ee;border-radius:16px;padding:7px;
+  .bfam{position:relative;border:1px solid #ddd2ee;border-radius: 0;padding:7px;
     background:linear-gradient(180deg,#f7f4fc,#fbfaff)}
   .bfam > .bn{border-width:1.6px}
   /* the fold bar, the paper card's `.sbar` idiom one scale up: a density control, never a reveal */
-  .bfbar{display:flex;align-items:center;gap:8px;padding:6px 6px 4px 8px;font-size:8px;
+  .bfbar{display:flex;align-items:center;gap:8px;padding:6px 6px 4px 8px;font-size:11px;
     letter-spacing:1.1px;text-transform:uppercase;color:#8a72b4}
   .bfbar .bfn{flex:1}
-  .bfbar .bffold{cursor:pointer;border:1px solid #ddd0ee;border-radius:999px;padding:2px 9px;
+  .bfbar .bffold{cursor:pointer;border:1px solid #ddd0ee;border-radius: 0;padding:2px 9px;
     background:#f2ecfa;letter-spacing:.7px}
   .bfbar .bffold:hover{background:#6b3fa0;border-color:#6b3fa0;color:#fff}
   /* the nest: an indented well with a rule down its left edge, so depth reads without counting */
@@ -20,10 +20,10 @@
   /* a rung: the same card, written small. Folded (the default) it is its title and its readouts —
      the full statement is the element's own hover title, and one bar-click puts every statement in
      the family on screen at once. */
-  .bn.rung{border-radius:9px;padding:5px 9px;border-width:1.2px}
+  .bn.rung{border-radius: 0;padding:5px 9px;border-width:1.2px}
   .bn.rung .bkd{display:none}
-  .bn.rung .btl{font-size:10px;margin-bottom:2px}
-  .bn.rung .btx{font-size:9px;color:var(--dim)}
+  .bn.rung .btl{font-size:11px;margin-bottom:2px}
+  .bn.rung .btx{font-size:11px;color:var(--dim)}
   .bn.rung .meter{margin-top:4px}
   .bn.rung .bdrills,.bn.rung .blens{margin-top:4px}
   .bfam.folded .bn.rung .btx{display:none}
@@ -33,30 +33,30 @@
   .bfam.folded .bn.rung .meter,.bfam.folded .bn.rung .bdrills,
   .bfam.folded .bn.rung .blens{margin-top:0}
   /* a claim that ladders into more than one broader claim, said on the card that hosts it */
-  .balso{margin-top:5px;font-size:8px;letter-spacing:.4px;color:#8a72b4;font-style:italic}
+  .balso{margin-top:5px;font-size:11px;letter-spacing:.4px;color:#8a72b4;font-style:italic}
   .bfam.folded .bn.rung .balso{display:none}
   /* …and the pointer left under every OTHER parent. A row, not a card: copying the card is what an
      outline does, and the paper card's DAG exists because that duplication was not worth paying. */
-  .bref{display:flex;align-items:baseline;gap:6px;padding:3px 9px;border-radius:8px;cursor:pointer;
-    border:1px dashed #ddd0ee;background:#fbf9fe;font-size:9px;color:var(--dim)}
+  .bref{display:flex;align-items:baseline;gap:6px;padding:3px 9px;border-radius: 0;cursor:pointer;
+    border:1px dashed #ddd0ee;background:#fbf9fe;font-size:11px;color:var(--dim)}
   .bref:hover{background:#f2ecfa;border-color:#c3a9e6}
-  .bref .brefa{color:#8a72b4;font-size:8px}
+  .bref .brefa{color:#8a72b4;font-size:11px}
   .bref .breft{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .bref .brefn{font-size:7px;letter-spacing:.5px;text-transform:uppercase;color:var(--faint)}
+  .bref .brefn{font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:var(--faint)}
   /* naming a claim (a ref row, a second parent) scrolls to it — same flash the paper list uses */
   .bn.found{animation:foundflash 1.7s ease-out}
 
   /* broad / synthesis nodes */
-  .bn{position:relative;border:1.6px solid var(--broad);border-radius:14px;padding:9px 12px;
+  .bn{position:relative;border:1.6px solid var(--broad);border-radius: 0;padding:9px 12px;
     background:linear-gradient(160deg,#f4f0fa,#ece3f6);cursor:pointer}
   .bn.q{border-color:var(--question);background:linear-gradient(160deg,#faf3e6,#f6ead8)}
-  .bn .bkd{font-size:7px;letter-spacing:1.4px;text-transform:uppercase;color:#6b3fa0;margin-bottom:3px}
+  .bn .bkd{font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:#6b3fa0;margin-bottom:3px}
   .bn.q .bkd{color:#9a6516}
   .bn .btl{font-size:11px;font-weight:700;line-height:1.25;color:var(--ink);margin-bottom:3px}
-  .bn .btx{font-size:10px;line-height:1.3;color:var(--ink)}
+  .bn .btx{font-size:11px;line-height:1.3;color:var(--ink)}
   /* with a title the full statement is the gloss under it — demoted, not hidden */
-  .bn.titled .btx{font-size:9px;color:var(--dim)}
-  .bn .meter{margin-top:6px;display:flex;gap:6px;font-size:8px}
+  .bn.titled .btx{font-size:11px;color:var(--dim)}
+  .bn .meter{margin-top:6px;display:flex;gap:6px;font-size:11px}
   .bn .meter .s{color:var(--grounded)}.bn .meter .c{color:var(--cross)}
   /* The two evidence readouts. NEITHER is a control: showing a claim is the CARD's click, and
      these report what that click did — the rung chip how many narrower claims it gathered up with
@@ -66,13 +66,13 @@
      "show me this claim" was the confusion; making them labels rather than restyling them is the
      fix. pointer-events:none on each, so a click aimed at a chip lands on the card. */
   .bn .bdrills{margin-top:7px;display:flex;flex-wrap:wrap;gap:5px}
-  .bn .bdrill{display:inline-flex;align-items:center;gap:4px;font-size:8px;
+  .bn .bdrill{display:inline-flex;align-items:center;gap:4px;font-size:11px;
     letter-spacing:.7px;text-transform:uppercase;color:#6b3fa0;background:#f2ecfa;
-    border:1px solid #ddd0ee;border-radius:999px;padding:2px 8px;pointer-events:none}
+    border:1px solid #ddd0ee;border-radius: 0;padding:2px 8px;pointer-events:none}
   .bn .blens{margin-top:6px}
-  .bn .lens{display:inline-flex;align-items:center;gap:4px;font-size:8px;letter-spacing:.7px;
+  .bn .lens{display:inline-flex;align-items:center;gap:4px;font-size:11px;letter-spacing:.7px;
     text-transform:uppercase;color:#6b3fa0;background:#f4f0f9;border:1px solid #dccdef;
-    border-radius:4px;padding:2px 8px;pointer-events:none}
+    border-radius: 0;padding:2px 8px;pointer-events:none}
   /* shown: filled, so "this claim is on the board" reads at a glance down a column of chips */
   .bn .lens.on{background:#6b3fa0;border-color:#6b3fa0;color:#fff}
   .bn .bdrill.on{background:#6b3fa0;border-color:#6b3fa0;color:#fff}

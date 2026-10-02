@@ -16,7 +16,7 @@
     color:var(--faint);font-size:11px;line-height:1.6}
   body.dock-open .pw-side{position:fixed !important;right:0 !important;
     left:auto !important;top:var(--hud-top) !important;bottom:0 !important;width:var(--dock-w) !important;
-    height:auto !important;border-radius:0;box-shadow:none;border-left:1px solid var(--line);
+    height:auto !important;border-radius: 0;box-shadow:none;border-left:1px solid var(--line);
     z-index:16;transition:top .18s ease}
   body.dock-open .pw-side .pw-grip{display:none}
   body.dock-open .pw-side .pw-bar{cursor:default}
@@ -27,7 +27,7 @@
     width:var(--grip);margin-right:calc(var(--grip) / -2);z-index:17;cursor:ew-resize;
     background:transparent;transition:background .12s,top .18s ease}
   #dockGrip::after{content:"";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-    width:3px;height:38px;border-radius:3px;background:#c4c4ca;transition:background .12s}
+    width:3px;height:38px;border-radius: 0;background:#c4c4ca;transition:background .12s}
   #dockGrip:hover,body.dock-resizing #dockGrip{background:var(--home-mid)}
   #dockGrip:hover::after,body.dock-resizing #dockGrip::after{background:#fff}
   body.dock-resizing{user-select:none}            /* the cursor is set per axis from JS */
@@ -60,7 +60,7 @@
   body.detached #detachEmpty{position:absolute;inset:0;display:flex;align-items:center;
     justify-content:center;text-align:center;padding:24px;color:var(--faint);font-size:12px}
   body.detached #detachPane .pw{position:absolute!important;inset:0!important;
-    width:auto!important;height:auto!important;border:0;border-radius:0;box-shadow:none}
+    width:auto!important;height:auto!important;border:0;border-radius: 0;box-shadow:none}
   body.detached #detachPane .pw-grip{display:none}
   body.detached #detachPane .pw-bar{cursor:default}
 

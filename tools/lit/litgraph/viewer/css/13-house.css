@@ -1,0 +1,9 @@
+/* Board chrome uses the family surface; graph semantic colours stay in 00-theme. */
+#hud .libbtn, #hud .pdfbtn, #hud .wip { color: var(--hm-home-text); background: var(--hm-home-soft); border-color: var(--hm-home-line); }
+#hud .libbtn:hover, #hud .pdfbtn:hover, #hud .wip:hover { color: var(--hm-home-text); background: var(--hm-home-line); }
+#hud .libbtn.on, #hud .pdfbtn.on { background: var(--hm-home); color: var(--hm-on-home); border-color: var(--hm-home); }
+#hud .zoomctl .zval:hover { color: var(--hm-home); }
+@media (pointer: coarse) { #hud .libbtn { min-height: 44px; } }
+
+#hud { flex-wrap: wrap; }
+#hud .zoomctl { margin-left: 0; }

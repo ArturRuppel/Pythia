@@ -32,36 +32,36 @@
      ranked lists (count desc) capped at a head, not chip clouds. */
   #libFacets{flex:0 0 232px;overflow:auto;padding:14px 0 40px;border-right:1px solid var(--line);
     background:var(--panel)}
-  #libFacets .lf-hd{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--faint);
+  #libFacets .lf-hd{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--faint);
     padding:10px 14px 6px;margin-top:10px;border-top:1px solid var(--line)}
   #libFacets .lf-hd:first-child{margin-top:0;border-top:0;padding-top:0}
   #libFacets .lf-seg{display:flex;gap:4px;padding:0 14px 4px;flex-wrap:wrap}
-  #libFacets .lf-opt{font-size:10px;color:var(--dim);background:var(--bg);border:1px solid var(--line);
-    border-radius:999px;padding:3px 9px;cursor:pointer;user-select:none}
+  #libFacets .lf-opt{font-size:11px;color:var(--dim);background:var(--bg);border:1px solid var(--line);
+    border-radius: 0;padding:3px 9px;cursor:pointer;user-select:none}
   #libFacets .lf-opt:hover{border-color:var(--home-edge);color:var(--hm-home)}
   #libFacets .lf-opt.on{background:var(--hm-home);border-color:var(--hm-home);color:#fff}
-  #libFacets .tp-head{font-size:9px;letter-spacing:1.2px;text-transform:uppercase;font-weight:700;
+  #libFacets .tp-head{font-size:11px;letter-spacing:1.2px;text-transform:uppercase;font-weight:700;
     color:var(--dim);margin:10px 14px 5px}
   #libFacets .tp-leaves{display:flex;flex-wrap:wrap;gap:5px;padding:0 14px 4px}
-  #libFacets .tp-chip{display:inline-flex;align-items:baseline;gap:4px;font-size:10px;
-    color:var(--hm-home-hover);background:var(--home-tint);border:1px solid var(--hm-home-line);border-radius:999px;
+  #libFacets .tp-chip{display:inline-flex;align-items:baseline;gap:4px;font-size:11px;
+    color:var(--hm-home-hover);background:var(--home-tint);border:1px solid var(--hm-home-line);border-radius: 0;
     padding:3px 9px;cursor:pointer}
   #libFacets .tp-chip:hover{background:var(--hm-home-soft);border-color:var(--home-edge);color:var(--hm-home)}
   #libFacets .tp-chip.on{background:var(--hm-home);border-color:var(--hm-home);color:#fff}
   #libFacets .tp-chip.on .n{color:var(--hm-home-line)}
-  #libFacets .tp-chip .n{color:var(--faint);font-size:8px}
-  #libFacets .lf-note{padding:8px 14px 2px;font-size:9px;line-height:1.5;color:var(--faint)}
+  #libFacets .tp-chip .n{color:var(--faint);font-size:11px}
+  #libFacets .lf-note{padding:8px 14px 2px;font-size:11px;line-height:1.5;color:var(--faint)}
   /* ranked facet (journal · author): a row, not a chip, because these are long strings and the
      count is the point — right-aligned and tabular so the ranking reads as a column. */
   #libFacets .lf-list{display:flex;flex-direction:column;padding:0 8px 2px}
-  #libFacets .lf-row{display:flex;align-items:baseline;gap:6px;font-size:10px;color:var(--hm-home-hover);
-    padding:2px 6px;border-radius:4px;cursor:pointer}
+  #libFacets .lf-row{display:flex;align-items:baseline;gap:6px;font-size:11px;color:var(--hm-home-hover);
+    padding:2px 6px;border-radius: 0;cursor:pointer}
   #libFacets .lf-row:hover{background:var(--hm-home-soft);color:var(--hm-home)}
   #libFacets .lf-row.on{background:var(--hm-home);color:#fff}
   #libFacets .lf-row .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  #libFacets .lf-row .n{flex:0 0 auto;font-size:8px;color:var(--faint);font-variant-numeric:tabular-nums}
+  #libFacets .lf-row .n{flex:0 0 auto;font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums}
   #libFacets .lf-row.on .n{color:var(--hm-home-line)}
-  #libFacets .lf-more{font-size:9px;color:var(--hm-home);cursor:pointer;padding:3px 14px 2px;
+  #libFacets .lf-more{font-size:11px;color:var(--hm-home);cursor:pointer;padding:3px 14px 2px;
     user-select:none}
   #libFacets .lf-more:hover{text-decoration:underline}
 
@@ -70,12 +70,12 @@
   #libBar{flex:0 0 auto;display:flex;align-items:center;gap:12px;padding:11px 20px;
     border-bottom:1px solid var(--line);background:var(--panel)}
   #libBar #libFilter{flex:1;min-width:0;max-width:420px;font:inherit;font-size:12px;color:var(--ink);
-    background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:5px 14px;outline:none;
+    background:var(--bg);border:1px solid var(--line);border-radius: 0;padding:5px 14px;outline:none;
     -webkit-appearance:none}
   #libBar #libFilter:focus{border-color:var(--home-mid);background:var(--panel)}
-  #libBar .lb-count{font-size:10px;letter-spacing:.6px;color:var(--faint);white-space:nowrap}
-  #libBar .lb-clear{font-size:10px;color:var(--hm-home);cursor:pointer;white-space:nowrap;
-    border:1px solid var(--hm-home-line);border-radius:999px;padding:3px 10px;background:var(--home-tint)}
+  #libBar .lb-count{font-size:11px;letter-spacing:.6px;color:var(--faint);white-space:nowrap}
+  #libBar .lb-clear{font-size:11px;color:var(--hm-home);cursor:pointer;white-space:nowrap;
+    border:1px solid var(--hm-home-line);border-radius: 0;padding:3px 10px;background:var(--home-tint)}
   #libBar .lb-clear:hover{background:var(--hm-home-soft)}
   #libBar .lb-clear[hidden]{display:none}
 
@@ -96,29 +96,29 @@
     justify-content:center;gap:3px}
   /* the handoff to the board is its own button on the far right, because the row itself now
      means "read this" — two different destinations must not share one gesture */
-  #libScroll .lr-go{flex:0 0 auto;font:inherit;font-size:9px;letter-spacing:.7px;
+  #libScroll .lr-go{flex:0 0 auto;font:inherit;font-size:11px;letter-spacing:.7px;
     text-transform:uppercase;color:#7a7a82;background:var(--bg);border:1px solid var(--line);
-    border-radius:999px;padding:4px 10px;cursor:pointer;white-space:nowrap}
+    border-radius: 0;padding:4px 10px;cursor:pointer;white-space:nowrap}
   #libScroll .lr-go:hover{background:var(--hm-home);border-color:var(--hm-home);color:#fff}
   #libScroll .lr:hover{background:#f5f5f6}
   #libScroll .lr-t{font-size:12.5px;line-height:1.3;color:var(--ink);
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   #libScroll .lr.stub .lr-t{color:var(--dim)}
-  #libScroll .lr-m{font-size:9.5px;color:var(--faint);
+  #libScroll .lr-m{font-size:11px;color:var(--faint);
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   #libScroll .lr-tags{display:flex;gap:4px;overflow:hidden;height:14px}
-  #libScroll .lr-tag{flex:0 0 auto;font-size:8px;color:var(--hm-home-hover);background:var(--home-tint);
-    border:1px solid var(--hm-home-line);border-radius:999px;padding:1px 6px;line-height:1.4}
+  #libScroll .lr-tag{flex:0 0 auto;font-size:11px;color:var(--hm-home-hover);background:var(--home-tint);
+    border:1px solid var(--hm-home-line);border-radius: 0;padding:1px 6px;line-height:1.4}
   /* "stub" leads the META line, not the title line — the title ellipsizes, the meta starts with
      the citekey and so has room at its head. The curation pass it used to carry is the gutter
      circle's job now (an empty ring already reads as "nothing curated here"). */
-  #libScroll .lr-badge{font-size:7px;letter-spacing:.6px;text-transform:uppercase;color:#fff;
-    background:var(--faint);border-radius:3px;padding:1px 4px;margin-right:5px;vertical-align:1px}
+  #libScroll .lr-badge{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:#fff;
+    background:var(--faint);border-radius: 0;padding:1px 4px;margin-right:5px;vertical-align:1px}
   #libScroll .lr-none{padding:40px 20px;font-size:11px;color:var(--faint)}
 
   #hud .libbtn{display:inline-flex;align-items:center;gap:6px;cursor:pointer;font:inherit;
-    font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#c9c9cf;
-    border:1px solid rgba(183,156,230,.42);border-radius:999px;padding:3px 10px;
+    font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#c9c9cf;
+    border:1px solid rgba(183,156,230,.42);border-radius: 0;padding:3px 10px;
     background:rgba(183,156,230,.14)}
   #hud .libbtn:hover{background:rgba(183,156,230,.26);border-color:rgba(203,184,230,.7)}
   #hud .libbtn.on{background:rgba(183,156,230,.34);border-color:rgba(221,205,239,.85);color:#fff}
@@ -130,13 +130,13 @@
   #viewsWrap{position:relative;display:inline-flex}
   #viewsWrap[hidden]{display:none}
   #viewsMenu{position:absolute;top:calc(100% + 6px);left:0;z-index:40;min-width:260px;
-    background:#0b2f2d;border:1px solid rgba(183,156,230,.42);border-radius:8px;padding:4px;
+    background:#0b2f2d;border:1px solid rgba(183,156,230,.42);border-radius: 0;padding:4px;
     box-shadow:0 8px 24px rgba(0,0,0,.45)}
   #viewsMenu[hidden]{display:none}
-  #viewsMenu a{display:block;padding:7px 10px;border-radius:5px;text-decoration:none;color:#ececef;
+  #viewsMenu a{display:block;padding:7px 10px;border-radius: 0;text-decoration:none;color:#ececef;
     font-size:12px;letter-spacing:0;text-transform:none}
   #viewsMenu a:hover{background:rgba(183,156,230,.26)}
-  #viewsMenu a .vn{display:block;color:#96969d;font-size:10.5px;margin-top:1px}
+  #viewsMenu a .vn{display:block;color:#96969d;font-size:11px;margin-top:1px}
   @media (max-width:640px){
     /* the HUD wraps on a phone, so the button this menu hangs off can end up anywhere
        along it. Dropping the wrap's positioning context re-anchors the menu to #hud
@@ -155,41 +155,41 @@
   }
 
   #wipPanel{position:fixed;z-index:45;top:44px;left:16px;width:300px;max-height:72vh;overflow:auto;
-    background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    background:var(--panel);border:1px solid var(--line);border-radius: 0;
     box-shadow:0 12px 34px rgba(28,27,34,.24);padding:6px}
   #wipPanel[hidden]{display:none}
-  #wipPanel .wp-hd{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--faint);
+  #wipPanel .wp-hd{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--faint);
     padding:6px 8px 5px}
-  #wipPanel .wp-row{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:7px;cursor:pointer}
+  #wipPanel .wp-row{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius: 0;cursor:pointer}
   #wipPanel .wp-row:hover{background:var(--bg)}
   #wipPanel .wp-row .ckey{font-size:12px;color:var(--ink)}
-  #wipPanel .wp-row .stage{margin-left:auto;font-size:9px;color:var(--faint);text-transform:uppercase;letter-spacing:.5px}
+  #wipPanel .wp-row .stage{margin-left:auto;font-size:11px;color:var(--faint);text-transform:uppercase;letter-spacing:.5px}
   /* per-row "finish" — return the paper to the graph without opening its windows */
   #wipPanel .wp-row .wp-done{flex:0 0 auto;font:inherit;font-size:11px;line-height:1;padding:3px 6px;
-    border:1px solid transparent;border-radius:5px;background:none;color:var(--faint);cursor:pointer}
+    border:1px solid transparent;border-radius: 0;background:none;color:var(--faint);cursor:pointer}
   #wipPanel .wp-row:hover .wp-done{color:var(--dim);border-color:var(--line)}
   #wipPanel .wp-row .wp-done:hover{color:var(--grounded);border-color:var(--grounded)}
-  #wipPanel .wp-note{padding:6px 8px 2px;font-size:10px;line-height:1.5;color:var(--faint)}
+  #wipPanel .wp-note{padding:6px 8px 2px;font-size:11px;line-height:1.5;color:var(--faint)}
 
   /* the programme index — the same panel shape as the worklist, but its rows are links to
      an aim's card (/preview.html?key=@slug) rather than an in-place transition */
   #aimPanel{position:fixed;z-index:45;top:44px;left:16px;width:320px;max-height:72vh;overflow:auto;
-    background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    background:var(--panel);border:1px solid var(--line);border-radius: 0;
     box-shadow:0 12px 34px rgba(28,27,34,.24);padding:6px}
   #aimPanel[hidden]{display:none}
-  #aimPanel .wp-hd{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--faint);
+  #aimPanel .wp-hd{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--faint);
     padding:6px 8px 5px}
-  #aimPanel .ap-row{display:flex;align-items:baseline;gap:8px;padding:7px 8px;border-radius:7px;
+  #aimPanel .ap-row{display:flex;align-items:baseline;gap:8px;padding:7px 8px;border-radius: 0;
     text-decoration:none;color:inherit}
   #aimPanel .ap-row:hover{background:var(--bg)}
   #aimPanel .ap-row .ckey{font-size:12px;color:var(--ink)}
-  #aimPanel .ap-row .flag{margin-left:auto;flex:none;font-size:9px;letter-spacing:.5px;
+  #aimPanel .ap-row .flag{margin-left:auto;flex:none;font-size:11px;letter-spacing:.5px;
     text-transform:uppercase;color:var(--faint)}
   #aimPanel .ap-row .flag.warn{color:var(--risk);font-weight:600}
   /* a proposal leads the list and opens the whole thing — introduction plus the aims under it —
      so it reads as the heading of the block the aim rows beneath it belong to */
   #aimPanel .ap-row.prop .ckey{font-weight:600}
-  #aimPanel .ap-row.prop{border-bottom:1px solid var(--line);border-radius:7px 7px 0 0;
+  #aimPanel .ap-row.prop{border-bottom:1px solid var(--line);border-radius: 0;
     margin-bottom:2px}
-  #aimPanel .wp-note{padding:6px 8px 2px;font-size:10px;line-height:1.5;color:var(--faint)}
+  #aimPanel .wp-note{padding:6px 8px 2px;font-size:11px;line-height:1.5;color:var(--faint)}
 
