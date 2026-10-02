@@ -202,6 +202,7 @@ class Paper:
     tags: list[str] = field(default_factory=list)                 # curator labels (curated only; SCHEMA §4)
     slices: list[Slice] = field(default_factory=list)
     head: list[str] = field(default_factory=list)                 # top-altitude claim texts
+    curation_updated: float | None = None  # curated YAML mtime, not a publication/curation event date
 
 
 @dataclass
@@ -322,6 +323,7 @@ def load_repo(root: Path) -> tuple[dict[str, Paper], dict[str, BroadNode]]:
 
     for f in sorted((root / "curated").glob("*.yaml")):
         papers[f.stem] = paper_from_raw(f.stem, load_yaml(f))
+        papers[f.stem].curation_updated = f.stat().st_mtime
 
     stubs_path = root / "stubs.yaml"
     if stubs_path.exists():

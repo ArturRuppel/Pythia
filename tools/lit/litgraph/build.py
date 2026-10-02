@@ -132,6 +132,7 @@ def _slice_json(s: Slice) -> dict:
 def _paper_json(p: Paper, builds: list[dict]) -> dict:
     return {
         "cur": p.curated, "pass": p.pass_, "type": p.type, "year": p.year,
+        "curation_updated": p.curation_updated,
         "title": p.title, "authors": [[n, pos, corr] for n, pos, corr in p.authors],
         "tags": p.tags, "note": p.note, "abs": p.abstract, "head": p.head,
         "slices": [_slice_json(s) for s in p.slices],

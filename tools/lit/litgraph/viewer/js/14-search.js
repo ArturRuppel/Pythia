@@ -526,6 +526,20 @@ if (LIVE && !DETACHED) (function(){
   }).catch(() => {});                        // a server without the route: stay hidden
 })();
 
+// Both viewer faces remove through the same server acknowledgement and client state.
+async function removeFromReadingList(k){
+  const response = await fetch("active", {method: "POST",
+    body: JSON.stringify({citekey: k, active: false})});
+  if (!response.ok) throw new Error("Could not remove the paper from the reading list.");
+  const result = await response.json();
+  if (!result.ok) throw new Error("Could not remove the paper from the reading list.");
+  GRAPH.active = (GRAPH.active || []).filter(key => key !== k);
+  ACTIVE.delete(k);
+  syncLanding();
+  redraw();
+  dispatchEvent(new CustomEvent("readinglistchange", {detail: {removed: k}}));
+}
+
 // LIVE-gated: a static `lit build` carries no active list, so the pill stays hidden.
 if (LIVE && !DETACHED) (function(){
   const pill = document.getElementById("wip");
@@ -567,19 +581,11 @@ if (LIVE && !DETACHED) (function(){
     if (!n) { panel.hidden = true; pill.hidden = true; return; }  // an empty list has no pill, as at boot
     pill.innerHTML = `reading list · <span class="n">${n}</span>`;
   }
+  addEventListener("readinglistchange", e => dropRow(e.detail.removed));
   async function returnToGraph(k, btn){
     if (btn) btn.disabled = true;
     try {
-      const r = await fetch("active", {method: "POST",
-        body: JSON.stringify({citekey: k, active: false})}).then(r => r.ok ? r.json() : null);
-      if (!r || !r.ok) { if (btn) btn.disabled = false; alert(`could not return ${k} to the graph`); return; }
-      ACTIVE.delete(k);
-      dropRow(k);
-      // Appends below the ranking rather than landing in ORDER position — the same place
-      // gotoPaper mints a summoned card, and consistent with a column whose stated contract is
-      // that a card stays where the hoists left it. A later reload seats it by rank.
-      syncLanding();
-      redraw();                                    // the column grew — edges re-anchor
+      await removeFromReadingList(k);
     } catch { if (btn) btn.disabled = false; alert("server unreachable — is lit serve running?"); }
   }
 

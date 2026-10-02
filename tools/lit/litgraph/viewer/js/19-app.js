@@ -1,6 +1,6 @@
 // ── the Pythia app: the touch reading view (iPhone + iPad) ──────────────────────────────────
 // A second face on the same GRAPH (Claude Design "Logo mark refinement round 2", the tab-bar
-// variant). Read-only, and nothing on the board is shared with it but the data: four tabs
+// variant). Reading-list changes share state with the board; four tabs
 // (Library · Topics · Reading · Search), each tab its own push stack of screens (a paper, a
 // slice, a broad node, a stub, a stance ledger). The board stays one tap away — the Board
 // button here, the "app" button on the HUD — and the choice sticks (localStorage).
@@ -122,7 +122,7 @@
   const S = {
     tab: "library", stacks: { library: [], topics: [], reading: [], search: [] },
     scope: "curated", sort: "new", kind: "all", absOpen: false, sheet: false,
-    q: "", more: {}, pos: {},
+    q: "", more: {}, pos: {}, future: { library: [], topics: [], reading: [], search: [] },
   };
   const cur = () => { const st = S.stacks[S.tab]; return st[st.length - 1] || null; };
   let recent = []; try { recent = JSON.parse(store.get("pythia.recent") || "[]"); } catch {}
@@ -140,28 +140,57 @@
   });
 
   // ── navigation ──
-  // Every push is a history entry, so iOS's edge swipe and the browser's back button walk the
-  // stack like the on-screen back does. A tab switch is not an entry (tab bars never are).
+  // Route snapshots support browser history; each tab also retains its forward trail
+  // for the on-screen controls. Following a new source discards that forward branch.
   const posKey = () => `${S.tab}/${S.stacks[S.tab].length}`;
   const scroller = () => app.querySelector(".pa-scroll");
   const keepPos = () => { const sc = scroller(); if (sc) S.pos[posKey()] = sc.scrollTop; };
+  function saveNav(replace = false){
+    const nav = { tab: S.tab, stacks: S.stacks, future: S.future };
+    history[replace ? "replaceState" : "pushState"]({ pythia: nav }, "");
+  }
+  function routeId(r){
+    if (r.t === "slice") return JSON.stringify(["slice", r.pk, r.id]);
+    if (r.t === "paper" && r.focus) return JSON.stringify(["slice", r.key, r.focus]);
+    if (r.t === "ledger") return "ledger:" + routeId(r.node);
+    return JSON.stringify([r.t, r.key || r.slug]);
+  }
   function push(r){
+    const trail = [...S.stacks[S.tab], ...S.future[S.tab]];
+    const seen = trail.findIndex(x => routeId(x) === routeId(r));
+    if (seen !== -1) { travel(seen + 1); return; }
     keepPos();
     if (S.q.trim()) remember(S.q.trim());
-    S.stacks[S.tab].push(r); S.kind = "all"; S.absOpen = false;
-    history.pushState({ pythia: true }, "");
-    render(0);
+    S.stacks[S.tab].push(r); S.future[S.tab] = [];
+    S.kind = "all"; S.absOpen = false;
+    saveNav(); render(0);
   }
-  function pop(){
-    if (!S.stacks[S.tab].length) return;
-    S.stacks[S.tab].pop(); S.kind = "all";
-    render(S.pos[posKey()] || 0);
+  function travel(depth){
+    const st = S.stacks[S.tab], ahead = S.future[S.tab];
+    if (depth < 0 || depth > st.length + ahead.length || depth === st.length) return;
+    keepPos();
+    while (st.length > depth) ahead.unshift(st.pop());
+    while (st.length < depth) st.push(ahead.shift());
+    S.kind = "all"; S.absOpen = false;
+    saveNav(); render(S.pos[posKey()] || 0);
   }
-  addEventListener("popstate", () => { if (document.body.classList.contains("app")) pop(); });
+  addEventListener("popstate", e => {
+    const nav = e.state && e.state.pythia;
+    if (!nav || !nav.stacks) return;
+    keepPos();
+    const oldTab = S.tab, oldTrail = [...S.stacks[S.tab], ...S.future[S.tab]];
+    S.tab = nav.tab; S.stacks = structuredClone(nav.stacks); S.future = structuredClone(nav.future);
+    const st = S.stacks[S.tab];
+    if (oldTab === S.tab && oldTrail.length > st.length
+        && st.every((r, i) => JSON.stringify(r) === JSON.stringify(oldTrail[i])))
+      S.future[S.tab] = oldTrail.slice(st.length);
+    S.kind = "all"; S.absOpen = false;
+    if (document.body.classList.contains("app")) render(S.pos[posKey()] || 0);
+  });
   function tabTo(t){
     keepPos();
-    if (S.tab === t) { S.stacks[t] = []; render(0); return; }   // re-tap: back to the tab's root
-    S.tab = t; render(S.pos[posKey()] || 0);
+    if (S.tab === t) { S.stacks[t] = []; S.future[t] = []; }
+    S.tab = t; saveNav(); render(S.pos[posKey()] || 0);
     if (t === "search" && !cur()) { const i = app.querySelector(".pa-search input"); if (i) i.focus(); }
   }
   function remember(q){
@@ -172,7 +201,7 @@
     : n.t === "stub" ? { t: "stub", key: n.key } : { t: "broad", slug: n.slug };
   function titleOf(r){
     if (!r) return { library: "Library", topics: "Topics", reading: "Reading", search: "Search" }[S.tab];
-    if (r.t === "paper" || r.t === "stub") return r.key;
+    if (r.t === "paper" || r.t === "stub") return r.key + (r.focus ? ` · ${r.focus}` : "");
     if (r.t === "slice") return `${r.pk} · ${r.id}`;
     if (r.t === "ledger") return "Stance";
     return "Broad " + bkind(r.slug);
@@ -183,8 +212,8 @@
   }
 
   // ── pieces ──
-  const item = (n, extra) => { const L = lab(n);
-    return `<button class="pa-item" ${act(() => push(route(n)))}><span><span class="pa-ik">${tx(extra ? `${L.kicker} · ${extra}` : L.kicker)}</span>`
+  const item = (n, extra, target) => { const L = lab(n);
+    return `<button class="pa-item" ${act(() => push(target || route(n)))}><span><span class="pa-ik">${tx(extra ? `${L.kicker} · ${extra}` : L.kicker)}</span>`
          + `<span class="pa-it">${tx(L.text)}</span></span>${CHEV}</button>`; };
   const sec = (title, n, cls) => `<div class="pa-sec${cls ? " " + cls : ""}"><b>${tx(title)}</b>${n != null && n !== "" ? `<span>${tx(n)}</span>` : ""}</div>`;
   // a long list shows `step` at a time; "more" is keyed so it survives a re-render
@@ -195,20 +224,46 @@
       + `Show ${Math.min(step, list.length - n)} more · ${list.length - n} left</button>`;
     return h;
   }
-  function paperRow(k, meta){
+  function rowAuthors(a){
+    if (!a || !a.length) return "";
+    const names = a.map(x => person(x[0]));
+    if (names.length <= 6) return `<div class="pa-auth">${tx(names.join(", "))}</div>`;
+    const short = [...names.slice(0, 2), "…", ...names.slice(-2)].join(", ");
+    return `<details class="pa-byline"><summary><span class="pa-auth pa-auth-short">${tx(short)}</span>`
+      + `<span class="pa-auth-toggle"><span class="pa-auth-more">Show all ${names.length} authors</span>`
+      + `<span class="pa-auth-less">Show fewer authors</span></span></summary>`
+      + `<div class="pa-auth">${tx(names.join(", "))}</div></details>`;
+  }
+  const removingReading = new Set();
+  function readingRemoveButton(k){
+    if (!LIVE || !(GRAPH.active || []).includes(k)) return "";
+    return `<button class="pa-btn pa-reading-remove" ${removingReading.has(k) ? "disabled" : ""}
+      ${act(() => removeReading(k))}>${removingReading.has(k) ? "Removing…" : "Remove from reading list"}</button>`;
+  }
+  async function removeReading(k){
+    if (removingReading.has(k)) return;
+    removingReading.add(k);
+    render(scroller().scrollTop);
+    try { await removeFromReadingList(k); }
+    catch { alert("Could not remove the paper from the reading list. Please try again."); }
+    finally { removingReading.delete(k); render(scroller().scrollTop); }
+  }
+
+  function paperRow(k, meta, readingControl = false){
     const p = PAPERS[k];
     const c = kd => p.slices.filter(s => s.kind === kd).length;
-    return `<button class="pa-row" ${act(() => push({ t: "paper", key: k }))}><span class="pa-rtop">`
+    return `<div class="pa-row"><button class="pa-row-open" ${act(() => push({ t: "paper", key: k }))}><span class="pa-rtop">`
       + `<span class="pa-key">${tx(k)}</span><span class="pa-yr">${p.year || ""}</span>${pm(p.pass)}</span>`
-      + `<span class="pa-rtitle">${tx(p.title || k)}</span>`
-      + `<span class="pa-meta">${tx(meta || `${plural(c("claim"), "claim")} · ${plural(c("question"), "question")} · ${plural(c("method"), "method")}`)}</span></button>`;
+      + `<span class="pa-rtitle">${tx(p.title || k)}</span></button>` + rowAuthors(p.authors)
+      + (S.tab === "library" && S.sort.startsWith("updated") && p.curation_updated ? `<span class="pa-meta">Curation record updated ${tx(new Date(p.curation_updated * 1000).toLocaleDateString())}</span>` : "")
+      + `<span class="pa-meta">${tx(meta || `${plural(c("claim"), "claim")} · ${plural(c("question"), "question")} · ${plural(c("method"), "method")}`)}</span>` + (readingControl ? readingRemoveButton(k) : "") + `</div>`;
   }
   function stubRow(k){
     const s = STUBS[k] || {}, n = cites[k] || 0;
-    return `<button class="pa-row" ${act(() => push({ t: "stub", key: k }))}><span class="pa-rtop">`
+    return `<div class="pa-row"><button class="pa-row-open" ${act(() => push({ t: "stub", key: k }))}><span class="pa-rtop">`
       + `<span class="pa-key">${tx(k)}</span><span class="pa-yr">${s.year || ""}</span><span class="pa-stub">Stub</span>${pm(0)}</span>`
-      + `<span class="pa-rtitle dim">${tx(s.title || k)}</span>`
-      + `<span class="pa-meta">${n ? `Cited by ${plural(n, "slice")}` : "Not referenced yet"}</span></button>`;
+      + `<span class="pa-rtitle dim">${tx(s.title || k)}</span></button>` + rowAuthors(s.authors)
+      + `<span class="pa-meta">${n ? `Cited by ${plural(n, "slice")}` : "Not referenced yet"}</span></div>`;
   }
   const bar = (s, c, lg) => `<span class="pa-bar${lg ? " lg" : ""}"><span class="s" style="flex:${s}"></span><span class="c" style="flex:${c}"></span></span>`
     + `<span class="pa-bartx${lg ? " lg" : ""}"><span class="s">${s} supporting</span><span class="c">${c} contradicting</span></span>`;
@@ -249,7 +304,8 @@
       }
       const venue = venueFromKey(k);
       if (venue && p.journal) { const t = vt[venue] || (vt[venue] = {}); t[p.journal] = (t[p.journal] || 0) + 1; }
-      return { k, stub, year: p.year || 0, pass: stub ? 0 : p.pass || 0, type: p.type || "", auth, venue };
+      return { k, stub, title: p.title || k, updated: p.curation_updated || 0,
+        year: p.year || 0, pass: stub ? 0 : p.pass ?? null, type: p.type || "", auth, venue };
     };
     IDX = PK.map(k => row(k, false)).concat(SK.map(k => row(k, true)));
     for (const r of IDX) if (r.venue && !VENUE[r.venue])      // the most-used spelling names the token
@@ -272,12 +328,41 @@
     if (skip !== "author" && f.author.size && !r.auth.some(a => f.author.has(a))) return false;
     return true;
   }
-  function libRows(){
-    const rows = index().filter(r => passes(r));
-    rows.sort((a, b) => S.sort === "new" ? b.year - a.year : S.sort === "old" ? (a.year || 9999) - (b.year || 9999) : b.pass - a.pass || b.year - a.year);
-    return rows;
+  function compareLibrary(a, b, sort){
+    const text = (x, y) => String(x).localeCompare(String(y), undefined, { sensitivity: "base", numeric: true });
+    const number = (x, y, descending) => {
+      const missingX = x == null || !Number.isFinite(x), missingY = y == null || !Number.isFinite(y);
+      if (missingX || missingY) return Number(missingX) - Number(missingY);
+      return descending ? y - x : x - y;
+    };
+    let order = 0;
+    if (sort === "title" || sort === "title-desc") order = sort === "title" ? text(a.title, b.title) : text(b.title, a.title);
+    else if (sort === "key") order = text(a.k, b.k);
+    else if (sort === "updated" || sort === "updated-old") order = number(a.updated || null, b.updated || null, sort === "updated");
+    else if (sort === "pass" || sort === "pass-low") order = number(a.pass, b.pass, sort === "pass") || number(a.year || null, b.year || null, true);
+    else order = number(a.year || null, b.year || null, sort !== "old");
+    return order || text(a.k, b.k);
   }
-  const SORTS = { new: ["Newest", "Newest first"], old: ["Oldest", "Oldest first"], pass: ["Curated", "Most curated"] };
+  function libRows(){
+    return index().filter(r => passes(r)).sort((a, b) => compareLibrary(a, b, S.sort));
+  }
+  const SORTS = {
+    new: ["Publication year · newest first", "Newest publication first"],
+    old: ["Publication year · oldest first", "Oldest publication first"],
+    title: ["Title · A–Z", "Title A–Z"],
+    "title-desc": ["Title · Z–A", "Title Z–A"],
+    key: ["Citation key · A–Z", "Citation key A–Z"],
+    updated: ["Curation record updated · newest first", "Recently updated curation records"],
+    "updated-old": ["Curation record updated · oldest first", "Oldest updated curation records"],
+    pass: ["Curation pass · highest first", "Highest curation pass first"],
+    "pass-low": ["Curation pass · lowest first", "Lowest curation pass first"],
+  };
+  if (SORTS[store.get("pythia.sort")]) S.sort = store.get("pythia.sort");
+  function sortControl(){
+    return `<label class="pa-sort">Sort by<select data-sort aria-label="Sort library">`
+      + Object.entries(SORTS).map(([k, labels]) => `<option value="${k}"${S.sort === k ? " selected" : ""}>${labels[0]}</option>`).join("")
+      + `</select></label>`;
+  }
   const TYPES = { original: "Original", review: "Review", perspective: "Perspective", methods: "Methods" };
   const typeName = t => TYPES[t] || t[0].toUpperCase() + t.slice(1);
   const toggle = (set, v) => { set.has(v) ? set.delete(v) : set.add(v); S.more.lib = 0; };
@@ -305,7 +390,9 @@
     const more = picked();
     if (more) h += `<div class="pa-chips">${more}<button class="pa-chip" ${act(() => { S.f = F0(); S.more.lib = 0; render(0); })}>Clear all</button></div>`;
     h += `</div><div class="pa-listhd pa-cap"><span>${plural(rows.length, "paper")}${nFilters() ? " · filtered" : ""}</span>`
-      + `<span>${SORTS[S.sort][1]}</span></div><div class="pa-list">`
+      + `</div>${sortControl()}`
+      + (S.sort.startsWith("updated") ? `<div class="pa-note">Last edit to the curation file, including metadata edits. File copies or restores can change this date. Undated papers appear last.</div>` : "")
+      + `<div class="pa-list">`
       + (rows.length ? paged("lib", rows, 60, x => x.stub ? stubRow(x.k) : paperRow(x.k))
                      : `<div class="pa-note">${f.topic.size && S.scope === "stub" ? "Topics hold curated papers only — a stub has no tags yet." : "Nothing matches every filter."}</div>`)
       + `</div><div class="pa-pad"></div></div>`;
@@ -366,9 +453,7 @@
       + (nFilters() ? clear("Clear all", () => { S.f = F0(); S.fq = { author: "", journal: "" }; render(); }) : "")
       + `<button aria-label="Close" ${act(() => { S.sheet = false; render(); })}>`
       + `<svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>`
-      + cap("Sort") + `<div class="pa-seg" style="grid-template-columns:repeat(3,minmax(0,1fr))">`
-      + Object.keys(SORTS).map(k => `<button class="${S.sort === k ? "on" : ""}" ${act(() => { S.sort = k; render(); })}>${SORTS[k][0]}</button>`).join("")
-      + `</div>`
+      + sortControl()
       + (types.length ? cap("Type", "any of") + `<div class="pa-fwrap">` + types.map(t => `<button class="pa-chip${f.type.has(t) ? " on" : ""}" `
           + `${act(() => { toggle(f.type, t); render(); })}>${tx(typeName(t))}<i>${typeN[t] || 0}</i></button>`).join("") + `</div>` : "")
       + (yMax ? cap("Year", f.y0 || f.y1 ? yearsLabel(f) : "") + `<div class="pa-years">`
@@ -399,7 +484,32 @@
     });
   }
   // a topic from elsewhere (Topics tab, a search hit) opens the library on that topic alone
-  const showTopic = k => { keepPos(); S.tab = "library"; S.f = F0(); S.f.topic.add(k); S.scope = "curated"; S.more.lib = 0; S.stacks.library = []; render(0); };
+  const showTopic = k => { keepPos(); S.tab = "library"; S.f = F0(); S.f.topic.add(k); S.scope = "curated"; S.more.lib = 0; S.stacks.library = []; S.future.library = []; saveNav(); render(0); };
+  // One home per claim; additional parents retain explicit reference rows.
+  function claimFamilies(ids, links){
+    const valid = new Set(ids), host = new Map(), children = new Map(ids.map(id => [id, []])), refs = new Map(ids.map(id => [id, []]));
+    const seen = new Set();
+    for (const edge of links) {
+      const { parent, child } = edge, pair = JSON.stringify([parent, child]);
+      if (!valid.has(parent) || !valid.has(child) || parent === child || seen.has(pair)) continue;
+      seen.add(pair);
+      let cycle = false;
+      for (let at = parent; at != null; at = host.get(at)) if (at === child) { cycle = true; break; }
+      if (!host.has(child) && !cycle) { host.set(child, parent); children.get(parent).push(edge); }
+      else refs.get(parent).push(edge);
+    }
+    return { roots: ids.filter(id => !host.has(id)), children, refs };
+  }
+  function claimFamilyView(ids, links, row, reference){
+    const family = claimFamilies(ids, links);
+    const branch = id => `<article class="pa-claim-family">${row(id)}`
+      + (family.children.get(id).length || family.refs.get(id).length ? `<div class="pa-claim-children">`
+        + family.children.get(id).map(e => `<div class="pa-claim-relation">${tx(e.label)}</div>${branch(e.child)}`).join("")
+        + family.refs.get(id).map(e => `<div class="pa-claim-reference">${reference(e.child, `${e.label} · shared claim`)}</div>`).join("") + `</div>` : "")
+      + `</article>`;
+    return `<div class="pa-claim-families">${family.roots.map(branch).join("")}</div>`;
+  }
+
   // ── topics: the broad ladder ──
   function topics(){
     const toLib = k => () => showTopic(k);
@@ -415,11 +525,15 @@
     }
     if (!tRoots.length) h += tLeaves.map(trow).join("");
     const bs = Object.keys(BROAD);
-    const claims = bs.filter(k => bkind(k) === "claim").map(k => ({ k, st: stance({ t: "broad", slug: k }) }))
-      .sort((a, b) => (b.st.sup.length + b.st.con.length) - (a.st.sup.length + a.st.con.length));
-    if (claims.length) h += sec("Broad claims", "where the evidence stands") + paged("bclaims", claims, 25, ({ k, st }) =>
-      `<button class="pa-row" ${act(() => push({ t: "broad", slug: k }))} style="gap:8px"><span class="pa-rtitle">${tx(BROAD[k].text)}</span>`
-      + bar(st.sup.length, st.con.length) + `</button>`);
+    const claims = bs.filter(k => bkind(k) === "claim");
+    if (claims.length) {
+      const links = claims.flatMap(child => (BROAD[child].leads_to || []).map(parent => ({ parent, child, label: "Narrower claim" })));
+      h += sec("Broad claims", "claim families") + claimFamilyView(claims, links, k => {
+        const st = stance({ t: "broad", slug: k });
+        return `<button class="pa-row" ${act(() => push({ t: "broad", slug: k }))} style="gap:8px"><span class="pa-rtitle">${tx(BROAD[k].text)}</span>`
+          + bar(st.sup.length, st.con.length) + `</button>`;
+      }, (k, label) => item({ t: "broad", slug: k }, label));
+    }
     const qs = bs.filter(k => bkind(k) === "question");
     if (qs.length) h += sec("Open questions") + qs.map(k => { const n = { t: "broad", slug: k }, a = answered(n);
       const raised = new Set(ins(n, "l").map(cont)).size;
@@ -456,7 +570,7 @@
     const passMeta = k => { const p = PAPERS[k].pass || 0;
       return p < 4 ? `Pass ${p} of 4 · ${PASS[p]} · next: ${PASS[p + 1].toLowerCase()}` : `${plural(PAPERS[k].slices.length, "slice")} · finished`; };
     let h = `<div class="pa-col">`;
-    if (active.length) h += sec("On the desk", "the worklist") + active.map(k => paperRow(k, passMeta(k))).join("");
+    if (active.length) h += sec("On the desk", "the worklist") + active.map(k => paperRow(k, passMeta(k), true)).join("");
     h += sec("In progress", "being curated") + paged("prog", prog, 30, k => paperRow(k, passMeta(k)));
     if (done.length) h += sec("Curated", "all four passes") + paged("done", done, 30, k => paperRow(k, passMeta(k)));
     if (front.length) h += sec("Frontier", "stubs, most cited first") + paged("front", front, 30, stubRow);
@@ -494,7 +608,7 @@
 
   // ── a paper: its own contents ──
   const pdfOK = k => LIVE && PDFS && PDFS.has(k);
-  function paper(key){
+  function paper(key, focus){
     const p = PAPERS[key];
     const count = k => p.slices.filter(s => s.kind === k).length;
     const kinds = [["all", "All", p.slices.length], ["claim", "Claims", count("claim")], ["question", "Questions", count("question")], ["method", "Methods", count("method")]];
@@ -502,9 +616,13 @@
     let h = `<div class="pa-col"><div class="pa-head"><span class="pa-cap">${tx([key, p.type, p.year].filter(Boolean).join(" · "))}</span>`
       + `<h1>${tx(p.title || key)}</h1>` + (p.authors && p.authors.length ? `<span class="pa-auth">${tx(authors(p.authors))}</span>` : "")
       + `<span class="pa-pass">${pm(p.pass, true)}${p.pass == null ? "No pass recorded" : `Pass ${p.pass} of 4 · ${PASS[p.pass]}`}</span>`
-      + (tags.length ? `<span class="pa-tags">` + tags.map(t => `<button ${act(() => { remember(t); keepPos(); S.tab = "search"; S.q = t; S.stacks.search = []; render(0); })}>${tx(t)}</button>`).join("") + `</span>` : "")
-      + (pdfOK(key) ? `<span class="pa-links"><a href="pdf/${encodeURIComponent(key)}.pdf" target="_blank" rel="noopener">Open the PDF</a></span>` : "")
-      + (p.note ? `<span class="pa-sub">${tx(p.note)}</span>` : "") + `</div>`;
+      + (tags.length ? `<span class="pa-tags">` + tags.map(t => `<button ${act(() => { remember(t); keepPos(); S.tab = "search"; S.q = t; S.stacks.search = []; S.future.search = []; saveNav(); render(0); })}>${tx(t)}</button>`).join("") + `</span>` : "")
+      + (pdfOK(key) ? `<span class="pa-links"><button class="pa-btn" ${act(() => showPdf(key, focus))}>Read PDF alongside</button><a href="pdf/${encodeURIComponent(key)}.pdf" target="_blank" rel="noopener">Open the PDF</a></span>` : "")
+      + readingRemoveButton(key)
+      + (p.note && !focus ? `<span class="pa-sub">${tx(p.note)}</span>` : "") + `</div>`;
+    if (focus && SL[key][focus]) h += `<section class="pa-evidence-focus" aria-label="Selected source claim">`
+      + sec("Selected source claim", focus) + detail({ t: "slice", pk: key, id: focus }) + `</section>`
+      + (p.note ? `<details class="pa-source-note"><summary>Paper notes</summary><p>${tx(p.note)}</p></details>` : "");
     if (p.abs) h += `<button class="pa-abs" ${act(() => { S.absOpen = !S.absOpen; render(scroller().scrollTop); })}>Abstract<span>${S.absOpen ? "−" : "+"}</span></button>`
       + (S.absOpen ? `<p class="pa-abstx">${tx(p.abs)}</p>` : "");
     h += `<div class="pa-sticky"><div class="pa-seg kinds" style="grid-template-columns:repeat(4,minmax(0,1fr))">`
@@ -515,23 +633,31 @@
       const rows = p.slices.filter(s => s.kind === k);
       if (!rows.length) continue;
       h += sec(label, rows.length);
-      for (const s of rows) {
+      const row = s => {
         const n = { t: "slice", pk: key, id: s.id }, b = [];
         if (k === "claim") {
           const g = outs(n, "g").length, st = stance(n), an = outs(n, "a");
-          if (g) b.push(["", plural(g, "ground")]);
+          if (g) b.push(["p", `${s.borrowed ? "Borrowed · " : ""}Trace ${plural(g, "source")}`]);
           if (st.sup.length) b.push(["s", `+${st.sup.length} corroborate`]);
           if (st.con.length) b.push(["c", `−${st.con.length} contradict`]);
           if (an.length) b.push(["p", "answers " + an.map(x => x.id || x.slug || x.key).join(", ")]);
         } else if (k === "question") b.push(answered(n) ? ["s", "Answered"] : ["p", "Open"]);
         else { const u = ins(n, "g").length; if (u) b.push(["", `used by ${u}`]); }
         const q = s.qd || s.quote;
-        h += `<button class="pa-srow" ${act(() => push({ t: "slice", pk: key, id: s.id }))}><span class="pa-sid ${k}">${tx(s.id)}</span>`
-          + `<span class="pa-sbody"><span class="pa-it">${tx(s.text)}</span>`
-          + (q ? `<span class="pa-q">“${tx(q)}”</span>` : "")
+        return `<div class="pa-srow"><span class="pa-sid ${k}">${tx(s.id)}</span>`
+          + `<div class="pa-sbody"><button class="pa-sopen" ${act(() => push(n))}><span class="pa-it">${tx(s.text)}</span>${CHEV}</button>`
+          + (q ? quoteButton(key, s.id, q) : "")
           + (b.length ? `<span class="pa-badges">${b.map(([c, t]) => `<i class="${c}">${tx(t)}</i>`).join("")}</span>` : "")
-          + `</span>${CHEV}</button>`;
-      }
+          + `</div></div>`;
+      };
+      if (k === "claim") {
+        const ids = rows.map(s => s.id);
+        // Generalization has the same hosting priority as the old broad-claim families.
+        const links = rows.flatMap(s => (s.gen || []).map(parent => ({ parent, child: s.id, label: "Narrower claim" })))
+          .concat(rows.flatMap(s => (s.up || []).map(child => ({ parent: s.id, child, label: "Supporting claim" }))));
+        h += claimFamilyView(ids, links, id => row(SL[key][id]),
+          (id, label) => item({ t: "slice", pk: key, id }, label));
+      } else h += rows.map(row).join("");
     }
     // what this paper stands on, and what stands on it — whole papers, from the g edges
     const on = new Map(), by = new Map();
@@ -558,10 +684,17 @@
       const q = s.qd || s.quote;
       if (q) {
         const pg = s.loc && s.loc.page != null && pdfOK(r.pk)
-          ? `<a href="pdf/${encodeURIComponent(r.pk)}.pdf#page=${s.loc.page + 1}" target="_blank" rel="noopener">Page ${s.loc.page + 1} ↗</a>` : "";
-        quote = `<div class="pa-quote"><span class="pa-cap">Quote · verbatim from the paper${pg}</span><span>“${tx(q)}”</span></div>`;
+          ? `<button class="pa-btn" ${act(() => showPdf(r.pk, r.id))}>Page ${s.loc.page + 1} · show in PDF</button>`
+          : pdfOK(r.pk) ? `<button class="pa-btn" ${act(() => showPdf(r.pk, r.id))}>Show in PDF</button>` : "";
+        quote = `<div class="pa-quote"><span class="pa-cap">Quote · verbatim from the paper${pg}</span>${quoteButton(r.pk, r.id, q, "pa-quote-text")}</div>`;
       }
-      add("Grounded in", outs(n, "g")); add("Built on by", ins(n, "g"));
+      const grounds = outs(n, "g");
+      if (grounds.length) secs.push(sec("Trace evidence", grounds.length)
+        + `<div class="pa-note">Follow a source to inspect its evidence. The trail above keeps your place.</div>`
+        + grounds.map(x => item(x, x.t === "stub" ? "Source paper · not yet sliced" : x.t === "slice" ? `Source ${KIND[sl(x).kind].toLowerCase()}` : "Source paper · claim not specified",
+          x.t === "slice" && x.pk !== r.pk ? { t: "paper", key: x.pk, focus: x.id } : route(x))).join(""));
+      else if (s.kind === "claim") secs.push(`<div class="pa-note">No further source is recorded for this claim. This alone does not establish it as the original finding.</div>`);
+      add("Built on by", ins(n, "g"));
       add("Leads to", outs(n, "l")); add("Laddered from", ins(n, "l"));
       add("Answers", outs(n, "a")); add("Answered by", ins(n, "a"));
     } else if (r.t === "broad") {
@@ -603,9 +736,9 @@
   function ledger(n){
     const st = stance(n), L = lab(n);
     const ent = x => { const l = lab(x.n);
-      return `<button class="pa-row pa-lgrow" ${act(() => push(route(x.n)))}><span class="pa-rtop"><span class="pa-key">${tx(l.kicker.replace(" · stub", ""))}</span>`
+      return `<div class="pa-row pa-lgrow"><button class="pa-row-open" ${act(() => push(route(x.n)))}><span class="pa-rtop"><span class="pa-key">${tx(l.kicker.replace(" · stub", ""))}</span>`
         + `<span class="pa-yr">${tx(x.rel)}</span>${l.wild ? `<span class="pa-wild">Not yet sliced</span>` : ""}</span>`
-        + `<span class="pa-it">${tx(l.text)}</span>` + (l.quote ? `<span class="pa-q">“${tx(l.quote)}”</span>` : "") + `</button>`; };
+        + `<span class="pa-it">${tx(l.text)}</span></button>` + (l.quote && x.n.t === "slice" ? quoteButton(x.n.pk, x.n.id, l.quote) : "") + `</div>`; };
     const col = (title, c, list, empty) => `<div class="pa-lghd"><i class="${c}"></i><b>${title}</b></div>`
       + (list.length ? list.map(ent).join("") : `<div class="pa-lgempty">${empty}</div>`) + `<div class="pa-lgend"></div>`;
     return `<div class="pa-col"><div class="pa-det"><div class="pa-dtop"><span class="pa-kind">Stance ledger</span>`
@@ -625,20 +758,69 @@
   };
   const BOARD = `<svg viewBox="0 0 24 24"><rect x="3" y="4" width="7" height="16"/><rect x="14" y="4" width="7" height="9"/><path d="M10 9h4"/></svg>`;
   const FILTER = `<svg viewBox="0 0 24 24"><path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4"/></svg>`;
+  function quoteButton(key, sid, text, cls = "pa-q"){
+    const quote = `“${tx(text)}”`;
+    return pdfOK(key)
+      ? `<button class="${cls} pa-quote-link" title="Show quote in PDF" ${act(() => showPdf(key, sid))}>${quote}</button>`
+      : `<span class="${cls}">${quote}</span>`;
+  }
+  function showPdf(key, sid){
+    if (!pdfOK(key)) return;
+    openDock();
+    if (sid) aimDock(key, sid); else loadDock(key);
+  }
+  function currentPdf(){
+    const r = cur();
+    if (!r) return null;
+    if (r.t === "slice") return { key: r.pk, sid: r.id };
+    if (r.t === "paper" || r.t === "stub") return { key: r.key, sid: r.focus };
+    if (r.t === "ledger" && r.node.t === "slice") return { key: r.node.pk, sid: r.node.id };
+    return null;
+  }
+  function syncPdf(){
+    if (!pdfActive()) return;
+    const p = currentPdf();
+    if (!p) return;
+    if (!pdfOK(p.key)) {
+      if (pdfDetached) reattachDock();
+      dockReq = null; dockShown = null; dockDoc = null;
+      if (dockWin) { dockWin.remove(); dockWin = null; }
+      document.getElementById("dockEmpty").textContent = `No local PDF available for ${p.key}.`;
+      return;
+    }
+    document.getElementById("dockEmpty").textContent = "Select a claim to read its quote in the PDF.";
+    if (p.sid) aimDock(p.key, p.sid); else loadDock(p.key);
+  }
+  function pdfButton(){
+    if (!LIVE) return "";
+    return `<button class="pa-hbtn pa-pdf-toggle" ${act(() => {
+      if (pdfActive()) { if (pdfDetached) reattachDock(); else closeDock(); }
+      else { openDock(); syncPdf(); }
+    })}>PDF<span class="pa-pdf-on"> · close</span></button>`;
+  }
+  function trail(){
+    const st = S.stacks[S.tab], ahead = S.future[S.tab], all = [null, ...st, ...ahead];
+    if (all.length < 2) return "";
+    return `<nav class="pa-trail" aria-label="Evidence navigation"><div class="pa-travel">`
+      + `<button ${st.length ? act(() => travel(st.length - 1)) : "disabled"}>← Back</button>`
+      + `<button ${ahead.length ? act(() => travel(st.length + 1)) : "disabled"}>Forward →</button></div>`
+      + `<div class="pa-crumbs">` + all.map((r, i) => `<button ${i === st.length ? 'aria-current="step"' : act(() => travel(i))}>${tx(titleOf(r))}</button>`).join(`<span aria-hidden="true">›</span>`)
+      + `</div></nav>`;
+  }
   function header(){
     const r = cur();
     if (r) {
       const st = S.stacks[S.tab];
-      return `<div class="pa-push"><div class="pa-col"><button class="pa-back" ${act(() => history.back())}>`
+      return `<div class="pa-push"><div class="pa-col"><button class="pa-back" ${act(() => travel(st.length - 1))}>`
         + `<svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>${tx(titleOf(st[st.length - 2] || null))}</button>`
-        + `<span class="pa-kick">${tx(kickOf(r))}</span></div></div>`;
+        + `<span class="pa-kick">${tx(kickOf(r))}</span>${pdfButton()}<button class="pa-hbtn" ${act(() => { const p = currentPdf(); setMode("board"); if (p) gotoPaper(p.key); })}>Board</button></div></div>`;
     }
     const sub = S.tab === "library" ? plural(PK.length + SK.length, "paper")
       : S.tab === "topics" ? `${tLeaves.length} topics · ${Object.keys(BROAD).length} broad slices`
       : S.tab === "reading" ? `${PK.filter(k => (PAPERS[k].pass || 0) < 4).length} in progress` : "";
     return `<div class="pa-root"><div class="pa-col"><div class="pa-brand">${MARK}<span class="pa-word">Pythia</span><span class="pa-hbtns">`
       + (S.tab === "library" ? `<button class="pa-hbtn" aria-label="Filter and sort" ${act(() => { S.sheet = true; render(); })}>${FILTER}${nFilters() ? `Filters · ${nFilters()}` : "Filter"}</button>` : "")
-      + `<button class="pa-hbtn" aria-label="Open the graph board" ${act(() => setMode("board"))}>${BOARD}Board</button></span></div>`
+      + pdfButton() + `<button class="pa-hbtn" aria-label="Open the graph board" ${act(() => setMode("board"))}>${BOARD}Board</button></span></div>`
       + `<div class="pa-title"><b>${titleOf(null)}</b><span>${tx(sub)}</span></div>`
       + (S.tab === "search" ? `<div class="pa-search"><label><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>`
         + `<input type="search" enterkeyhint="search" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Papers, claims, topics"></label></div>` : "")
@@ -647,7 +829,7 @@
   function body(){
     const r = cur();
     if (!r) return { library, topics, reading, search }[S.tab]();
-    if (r.t === "paper") return paper(r.key);
+    if (r.t === "paper") return paper(r.key, r.focus);
     if (r.t === "ledger") return ledger(r.node);
     return detail(r);
   }
@@ -662,7 +844,10 @@
     const sc = scroller(), keep = sc ? sc.scrollTop : 0;
     const sb = app.querySelector(".pa-sheetb"), sheetKeep = sb ? sb.scrollTop : 0;   // a tick in the sheet keeps its place
     acts = {};
-    app.innerHTML = header() + `<div class="pa-scroll">${body()}</div>` + tabs() + (S.sheet && S.tab === "library" && !cur() ? sheet() : "");
+    app.innerHTML = header() + trail() + `<div class="pa-scroll">${body()}</div>` + tabs() + (S.sheet && S.tab === "library" && !cur() ? sheet() : "");
+    app.querySelectorAll("select[data-sort]").forEach(select => select.addEventListener("change", () => {
+      S.sort = select.value; S.more.lib = 0; store.set("pythia.sort", S.sort); render(0);
+    }));
     const inp = app.querySelector(".pa-search input");
     if (inp) {
       inp.value = S.q;
@@ -674,6 +859,7 @@
     const sb2 = app.querySelector(".pa-sheetb");
     if (sb2) { sb2.scrollTop = sheetKeep; wireSheet(); }
     scroller().scrollTop = top === undefined ? keep : top;
+    syncPdf();
   }
   // a keystroke's render: the results region only. Its handlers join `acts` beside the header's
   // and the tab bar's (the stale ones left behind are unreachable, and go at the next render).
@@ -699,6 +885,7 @@
   const hud = document.getElementById("hud");
   if (hud) hud.insertBefore(hudBtn, hud.children[1] || null);
 
+  saveNav(true);
   const want = QUERY.get("view");
   const mode = want === "app" || want === "board" ? want : (store.get("pythia.view") || (TOUCH ? "app" : "board"));
   if (mode === "app") setMode("app");
