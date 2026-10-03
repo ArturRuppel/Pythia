@@ -2,7 +2,7 @@
   <!-- Pythia: the oracle's tripod. Marine foreground on a transparent background.
        PNGs beside this SVG are rendered with rsvg-convert. -->
 
-  <g fill="#1f3f7a" transform="translate(24 25) scale(0.72) translate(-24 -25)">
+  <g fill="#4273c9" transform="translate(24 25) scale(0.72) translate(-24 -25)">
     <rect x="8" y="10" width="32" height="7"/>
     <rect x="11" y="29" width="26" height="3"/>
     <path d="M12 17h5l-6 23H6zM31 17h5l6 23h-5z"/>
