@@ -115,17 +115,45 @@ the reading list (`[curation] active`). Every one of them has `--help`.
 
 ## Install the viewer on a phone
 
-`lit serve` ships a web app manifest and dedicated iOS/Android icons. Serve it
-on a phone-reachable address (preferably the machine's Tailscale address), open
-that URL on the phone, then use **Add to Home Screen**:
+`lit serve` ships a web app manifest and dedicated iOS/Android icons. Bind it to
+loopback and let [Tailscale Serve](https://tailscale.com/kb/1312/serve) publish
+it to your tailnet over HTTPS, then open that URL on the phone and use **Add to
+Home Screen**:
 
 ```bash
-lit serve --host "$(tailscale ip -4)" --root /path/to/your/library
+lit serve --host 127.0.0.1 --port 8000 --root /path/to/your/library
+tailscale serve --bg --https=8000 http://127.0.0.1:8000
+# -> https://<machine>.<tailnet>.ts.net:8000/
 ```
 
-The installed app launches standalone with its own Pythia icon. The service
-must remain reachable to browse PDFs and use live curation features; the static
-`lit build` output also carries the manifest and icons for HTTPS hosting.
+`tailscale serve` keeps its configuration across reboots and only touches the
+port it is given, so other apps served the same way are unaffected. The
+curation endpoints stay off the ordinary LAN, as with a tailnet-only bind.
+
+### The offline copy
+
+Over HTTPS the installed app keeps a read-only copy of the library on the
+device, so tapping the icon with the server down still opens the graph and
+every PDF. Each time the app opens it fetches `/offline.json` (every URL worth
+keeping with a size-and-mtime version) and copies into the browser's Cache
+Storage only what is new or changed, a few files at a time, deleting what the
+server no longer has. An interrupted first sync resumes where it stopped. A
+status chip in the corner shows progress, then "offline copy up to date · N
+PDFs · X GB", or "server not reachable · offline copy from <time>".
+
+A service worker (`/sw.js`) answers from that copy. The page and the graph come
+from the server first and from the copy when the server does not answer within
+four seconds; PDFs come from the copy first, including byte ranges. Running
+from the copy, the moves that write (curate a paper, remove it from the
+reading list) are disabled with the reason beside them, and the PDF pane shows
+the cached PDF in the browser's own viewer instead of server-rendered pages,
+so quote highlights and find-in-PDF need the server.
+
+Without HTTPS (plain `http://` to a tailnet address), in a private window or
+from a `lit build` file, the browser keeps no worker and the app behaves as it
+always has. The static `lit build` output carries the manifest and icons for
+HTTPS hosting but registers no worker: it has no PDFs or sync list to keep,
+and as one self-contained file the browser's own cache already covers it.
 
 ## Curating a paper
 

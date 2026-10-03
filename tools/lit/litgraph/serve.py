@@ -17,7 +17,11 @@ fixed. `/page/<citekey>/<n>.<png|jpg>?w=` lets the client name the width it will
 ~165 KB; every PDF-derived body carries an mtime-keyed ETag so a revisit costs a bodiless 304
 instead of the whole document again; and text bodies gzip on demand, which matters most for the
 ~2 MB graph page itself. Omitting `?w=` and asking for `.png` reproduces the old behaviour
-exactly, so a static `lit build` artifact and any cached older viewer keep working."""
+exactly, so a static `lit build` artifact and any cached older viewer keep working.
+
+Over HTTPS (Tailscale Serve in front of a loopback bind) the installed app also keeps a read-only
+offline copy: `/sw.js` is the service worker and `/offline.json` the list it syncs against — see
+`offline_manifest`. Neither changes anything for plain HTTP, where browsers refuse the worker."""
 
 from __future__ import annotations
 
@@ -89,6 +93,79 @@ def _available_views() -> list[dict]:
         return []
     return [{"slug": s, "label": lab, "note": note} for s, lab, note in _VIEWS
             if (_PROTOTYPES / s / "index.html").is_file()]
+
+
+# ── the offline copy ──────────────────────────────────────────────────────────────────────────
+# The installed app keeps a read-only copy of itself in the browser's Cache Storage, so it still
+# opens with the last synced graph and every PDF when this server is down (viewer/sw.js decides
+# where an answer comes from, js/20-offline.js fills the cache). `/offline.json` is the list the
+# client syncs against: every URL worth keeping, each with a version that changes when its body
+# does. Versions are stats, never hashes of the bodies — the list is fetched on every app open and
+# covers ~1 GB of PDFs, so it has to cost a directory walk and not a read.
+
+def _file_version(p: Path) -> str:
+    st = p.stat()
+    return f"{st.st_size:x}-{st.st_mtime_ns:x}"
+
+
+def _tree_version(files) -> str:
+    """One short token for a set of files: changes when any is added, removed or rewritten."""
+    h = hashlib.sha1()
+    for f in sorted(files):
+        try:
+            h.update(f"{f}:{_file_version(f)};".encode())
+        except OSError:
+            pass          # vanished mid-walk: the next manifest settles it
+    return h.hexdigest()[:16]
+
+
+def _view_files(slug: str) -> list[Path]:
+    """The files /views/<slug>/ would actually serve (its servable types, not its .py tooling)."""
+    base = _PROTOTYPES / slug
+    return sorted(f for f in base.rglob("*") if f.is_file() and f.suffix in _VIEW_TYPES)
+
+
+def offline_manifest(root: Path, pdf_dir: Path) -> dict:
+    """What the client keeps offline, as {"shell": [...], "pdfs": [...]} of {url, version, size}.
+
+    URLs are relative to the app's own root, so the copy works under any mount point. The shell
+    is the page (graph inlined), the graph and the small JSON the viewer reads at boot, the PWA
+    files, and the alternative views; `size` is null where knowing it would mean building the
+    body. The PDFs are every `<citekey>.pdf` the server would hand out at /pdf/."""
+    latest, n = _source_version(root, pdf_dir)
+    source = f"{latest:x}-{n:x}"
+    pdfs = (sorted(f for f in pdf_dir.glob("*.pdf") if _PDF_NAME.match(f.name))
+            if pdf_dir.is_dir() else [])
+    views = _available_views()
+    viewer = _tree_version(f for f in _VIEWER_ASSETS.rglob("*") if f.is_file())
+    page = hashlib.sha1(f"{source}|{viewer}|{[v['slug'] for v in views]}".encode()).hexdigest()[:16]
+    shell = [{"url": "./", "version": page, "size": None},
+             {"url": "graph.json", "version": source, "size": None},
+             {"url": "aims.json", "version": source, "size": None},
+             {"url": "pdfs.json", "version": hashlib.sha1(" ".join(f.stem for f in pdfs).encode())
+              .hexdigest()[:16], "size": None}]
+    for name in ("manifest.webmanifest", "icon-192.png", "icon-512.png", "apple-touch-icon.png"):
+        f = _VIEWER_ASSETS / name
+        shell.append({"url": name, "version": _file_version(f), "size": f.stat().st_size})
+    for v in views:
+        files = _view_files(v["slug"])
+        # the view's directory URL is its index.html; its graph.json is the live payload, which
+        # the worker answers from the cached graph.json rather than keeping a copy per view
+        shell.append({"url": f"views/{v['slug']}/", "version": _tree_version(files), "size": None})
+        for f in files:
+            if f.name != "index.html":
+                rel = f.relative_to(_PROTOTYPES).as_posix()
+                shell.append({"url": f"views/{rel}", "version": _file_version(f),
+                              "size": f.stat().st_size})
+    out_pdfs = []
+    for f in pdfs:
+        try:
+            st = f.stat()
+        except OSError:
+            continue
+        out_pdfs.append({"url": f"pdf/{f.name}", "version": f"{st.st_size:x}-{st.st_mtime_ns:x}",
+                         "size": st.st_size})
+    return {"shell": shell, "pdfs": out_pdfs}
 
 
 # A stored quote is not always one contiguous run of PDF text, and the two ways it breaks both
@@ -372,6 +449,15 @@ class _Handler(BaseHTTPRequestHandler):
                 ctype = ("application/manifest+json" if path.endswith(".webmanifest")
                          else "image/png")
                 return self._send(HTTPStatus.OK, ctype, asset.read_bytes(), cache=_PWA_CACHE)
+            if path == "/sw.js":
+                # served from the root so its scope covers the whole app; no-cache, so a changed
+                # worker is picked up on the next open rather than after the browser's own day
+                return self._send(HTTPStatus.OK, "application/javascript; charset=utf-8",
+                                  (_VIEWER_ASSETS / "sw.js").read_bytes(), cache=_PWA_CACHE)
+            if path == "/offline.json":
+                return self._send(HTTPStatus.OK, "application/json; charset=utf-8",
+                                  json.dumps(offline_manifest(self.server.root,
+                                                              self.server.pdf_dir)).encode())
             if path == "/graph.json":
                 return self._send(HTTPStatus.OK, "application/json; charset=utf-8",
                                   self._payload().encode())

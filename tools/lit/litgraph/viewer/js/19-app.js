@@ -237,6 +237,8 @@
   const removingReading = new Set();
   function readingRemoveButton(k){
     if (!LIVE || !(GRAPH.active || []).includes(k)) return "";
+    if (OFFLINE.on) return `<button class="pa-btn pa-reading-remove" disabled>Remove from reading list</button>`
+      + `<span class="pa-offline-why">Removing ${OFFLINE_WHY}.</span>`;
     return `<button class="pa-btn pa-reading-remove" ${removingReading.has(k) ? "disabled" : ""}
       ${act(() => removeReading(k))}>${removingReading.has(k) ? "Removing…" : "Remove from reading list"}</button>`;
   }
@@ -884,6 +886,9 @@
   hudBtn.addEventListener("click", () => setMode("app"));
   const hud = document.getElementById("hud");
   if (hud) hud.insertBefore(hudBtn, hud.children[1] || null);
+
+  // the server went away under an open app: redraw so the write controls show as disabled
+  addEventListener("offlinechange", () => { if (document.body.classList.contains("app")) render(); });
 
   saveNav(true);
   const want = QUERY.get("view");

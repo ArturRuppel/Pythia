@@ -252,13 +252,16 @@ const ctxmenu = document.getElementById("ctxmenu");
 function hideCtxMenu(){ ctxmenu.style.display = "none"; ctxmenu.onclick = null; }
 function showCurateMenu(e, key){
   e.preventDefault();
-  ctxmenu.innerHTML = `<button data-act="curate">Curate this paper</button>`;
+  ctxmenu.innerHTML = OFFLINE.on
+    ? `<button data-act="curate" disabled title="${OFFLINE_WHY}">Curate this paper</button>`
+      + `<div class="ctx-why">${OFFLINE_WHY}</div>`
+    : `<button data-act="curate">Curate this paper</button>`;
   ctxmenu.style.display = "block";
   const w = ctxmenu.offsetWidth || 150, h = ctxmenu.offsetHeight || 34;
   ctxmenu.style.left = Math.min(e.clientX, innerWidth - w - 8) + "px";
   ctxmenu.style.top = Math.min(e.clientY, innerHeight - h - 8) + "px";
   ctxmenu.onclick = ev => {
-    const b = ev.target.closest("button"); if (!b) return;
+    const b = ev.target.closest("button"); if (!b || b.disabled) return;
     hideCtxMenu();
     if (b.dataset.act === "curate") moveToCurate(key);
   };
@@ -277,6 +280,7 @@ function showCurateMenu(e, key){
 // from undoing even that.
 let moving = false;
 async function moveToCurate(key){
+  if (OFFLINE.on) return;                      // the menu offers it disabled; belt and braces
   if (moving) return;                          // one move per reload — a second POST would
   moving = true;                               // invalidate the rebuild this one is waiting on
   try {
@@ -533,6 +537,7 @@ async function ensureTextLayer(win, key, page, view){
 // as it nears the viewport, so a long PDF stays cheap. Falls back to a single page if the manifest
 // can't be read. Ctrl/⌘-wheel zooms, plain wheel scrolls, the titlebar tracks the current page.
 async function mountDoc(win, key, page, rects, opts){
+  if (OFFLINE.on) return mountCopy(win, key, page);  // no server to raster pages: the PDF itself
   const body = win.querySelector(".pw-body");
   const sizer = win.querySelector(".pw-sizer"), stage = win.querySelector(".pw-stage");
   const view = {z: 1, W0: 0, H0: 0};             // H0 = the whole stack's base height
@@ -642,4 +647,17 @@ async function mountDoc(win, key, page, rects, opts){
     }
   });
   attachFind(win, key, {body, pages, view});
+}
+
+// Offline, nothing can rasterize a page, so the pane shows the cached PDF itself in the browser's
+// own viewer (the service worker answers its range requests from the copy). The highlight, the
+// find bar and the text layer are server-side features and stay off; `#page=` lands on the quote's
+// page where the browser's viewer honours it.
+function mountCopy(win, key, page){
+  const body = win.querySelector(".pw-body"), sub = win.querySelector(".pw-sub");
+  body.classList.add("pw-copy");
+  body.innerHTML = `<iframe class="pw-pdf" title="${key}.pdf"`
+    + ` src="pdf/${encodeURIComponent(key)}.pdf#page=${page + 1}"></iframe>`;
+  if (sub) sub.textContent = `p.${page + 1} · offline copy`;
+  win.querySelectorAll('.pw-tool[data-t="pan"],.pw-tool[data-t="text"]').forEach(b => { b.hidden = true; });
 }

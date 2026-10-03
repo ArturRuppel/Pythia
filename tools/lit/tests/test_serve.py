@@ -781,3 +781,72 @@ def test_the_payload_is_rebuilt_once_until_a_source_changes(srv, repo, monkeypat
     assert get(srv, "/")[0] == 200 and len(builds) == 3
     md.unlink()                                      # …and a deletion lowers the max mtime
     assert get(srv, "/")[0] == 200 and len(builds) == 4
+
+
+# ── the offline copy ─────────────────────────────────────────────────────────────────────────
+
+def test_offline_manifest_lists_the_shell_and_every_pdf(srv, repo):
+    """The list the installed app syncs against: relative URLs (so it works under any mount),
+    a stat-cheap version per entry, and every one of them actually servable."""
+    status, headers, body = get(srv, "/offline.json")
+    assert status == 200 and headers["Cache-Control"] == "no-store"
+    man = json.loads(body)
+    shell = {e["url"]: e for e in man["shell"]}
+    for url in ("./", "graph.json", "aims.json", "pdfs.json", "manifest.webmanifest",
+                "icon-192.png", "icon-512.png", "apple-touch-icon.png"):
+        assert url in shell, url
+    st = (repo / "pdfs" / "Chen2021Sys.pdf").stat()
+    assert man["pdfs"] == [{"url": "pdf/Chen2021Sys.pdf", "size": st.st_size,
+                            "version": f"{st.st_size:x}-{st.st_mtime_ns:x}"}]
+    for e in man["shell"] + man["pdfs"]:
+        assert not e["url"].startswith("/") and "://" not in e["url"], e
+        assert e["version"], e
+        status, _, got = get(srv, "/" + e["url"].removeprefix("./"))
+        assert status == 200, e["url"]
+        if e["size"] is not None:
+            assert len(got) == e["size"], e["url"]
+    assert get(srv, "/pdf/Chen2021Sys.pdf")[2] == FAKE_PDF
+
+
+def test_offline_versions_follow_the_files(srv, repo):
+    """A rewritten PDF gets a new version, a deleted one leaves the list, and an edit to the
+    YAML re-versions the page and the graph — that is all the client compares."""
+    def man():
+        m = json.loads(get(srv, "/offline.json")[2])
+        return {e["url"]: e["version"] for e in m["shell"] + m["pdfs"]}
+    before = man()
+    assert man() == before                           # stable while nothing changes
+    pdf = repo / "pdfs" / "Chen2021Sys.pdf"
+    os.utime(pdf, ns=(pdf.stat().st_atime_ns, pdf.stat().st_mtime_ns + 10**9))
+    after = man()
+    assert after["pdf/Chen2021Sys.pdf"] != before["pdf/Chen2021Sys.pdf"]
+    assert after["./"] == before["./"]               # a PDF's bytes are not in the page
+    f = repo / "claims" / "batching-adds-latency.yaml"
+    f.write_text(f.read_text())
+    os.utime(f, ns=(f.stat().st_atime_ns, f.stat().st_mtime_ns + 10**9))
+    edited = man()
+    assert edited["./"] != after["./"] and edited["graph.json"] != after["graph.json"]
+    (repo / "pdfs" / "Second2020Abc.pdf").write_bytes(FAKE_PDF)
+    pdf.unlink()
+    final = man()
+    assert "pdf/Chen2021Sys.pdf" not in final and "pdf/Second2020Abc.pdf" in final
+    assert final["pdfs.json"] != edited["pdfs.json"]
+
+
+def test_service_worker_is_served_from_the_root(srv):
+    """Its scope is its own directory, so it has to live at / to cover the app; no-cache so a
+    changed worker is noticed on the next open."""
+    status, headers, body = get(srv, "/sw.js")
+    assert status == 200
+    assert headers["Content-Type"].startswith("application/javascript")
+    assert headers["Cache-Control"] == "no-cache"
+    assert b'addEventListener("fetch"' in body
+
+
+def test_the_page_carries_the_offline_client(srv):
+    """The sync is inlined like every other module and stays inert without a secure context."""
+    text = get(srv, "/")[2].decode()
+    assert 'fetch("offline.json", {cache: "no-store"})' in text
+    assert 'navigator.serviceWorker.register("sw.js")' in text
+    assert "window.isSecureContext" in text
+    assert ":not(#offline){display:none!important}" in text   # the chip survives the app view

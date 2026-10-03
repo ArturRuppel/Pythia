@@ -7,7 +7,7 @@
      neutral greys, marine for the brand and the curation meter, teal for support, red for contradiction. */
   #app{display:none}
   body.app{overflow:hidden;background:#f3f3f4}
-  body.app>:not(#app):not(script):not(.pw-side):not(#dockGrip):not(#dockEmpty){display:none!important}
+  body.app>:not(#app):not(script):not(.pw-side):not(#dockGrip):not(#dockEmpty):not(#offline){display:none!important}
   body.app #app{display:flex}
   #app{
     --pa-text:var(--hm-ink);--pa-bg:var(--hm-ground);--pa-surface:var(--hm-sunk);

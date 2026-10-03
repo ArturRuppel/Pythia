@@ -1,0 +1,32 @@
+  /* ── the offline copy (js/20-offline.js): one status chip, and the write controls that go away ──
+     The chip sits bottom-left on the board and just above the tab bar in the app. Square and flat
+     like the rest of the family: a 2px ink rule, the home colour while copying (its fill is the
+     progress), warn colours when the copy is all there is. */
+  #offline{position:fixed;z-index:80;left:12px;bottom:calc(12px + env(safe-area-inset-bottom));
+    max-width:calc(100vw - 24px);padding:6px 10px;margin:0;border:2px solid var(--hm-ink);border-radius:0;
+    font:500 12px/1.35 var(--hm-font);text-align:left;color:var(--hm-ink);background:var(--hm-raised);
+    cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+  #offline[hidden]{display:none}
+  #offline.sync{color:var(--hm-home-text);border-color:var(--hm-home);cursor:default;
+    background:linear-gradient(to right,var(--hm-home-soft) calc(var(--done,0) * 100%),var(--hm-raised) 0)}
+  #offline.ok{color:var(--hm-ok);border-color:var(--hm-ok);background:var(--hm-ok-soft)}
+  #offline.off,#offline.warn{color:var(--hm-warn);border-color:var(--hm-warn);background:var(--hm-warn-soft)}
+  #offline.back{color:var(--hm-on-home);border-color:var(--hm-home);background:var(--hm-home)}
+  /* a current copy is nothing to look at: it folds to a small square mark, a tap unfolds it */
+  #offline.folded{width:18px;height:18px;padding:0;font-size:0;border-width:2px}
+  body.app #offline{bottom:calc(max(env(safe-area-inset-bottom),8px) + 80px)}
+  @media (pointer:coarse){ #offline:not(.folded){min-height:32px} }
+
+  /* offline: the moves that write are hidden or disabled, each with its reason beside it */
+  #wipPanel .wp-offline{display:none}
+  body.offline #wipPanel .wp-offline{display:block;color:var(--hm-warn)}
+  body.offline #wipPanel .wp-done{display:none}
+  #ctxmenu button:disabled{color:var(--faint);cursor:not-allowed;background:transparent}
+  #ctxmenu .ctx-why{padding:2px 10px 6px;font-size:11px;line-height:1.4;color:var(--hm-warn);max-width:240px}
+  body.offline #app button.pa-reading-remove:disabled{cursor:not-allowed}
+  #app .pa-offline-why{display:block;font-size:13px;color:var(--hm-warn)}
+
+  /* the PDF pane without a server: the cached PDF in the browser's own viewer */
+  .pw-body.pw-copy{overflow:hidden;padding:0}
+  .pw-body.pw-copy .pw-pdf{display:block;width:100%;height:100%;border:0;background:var(--hm-raised)}

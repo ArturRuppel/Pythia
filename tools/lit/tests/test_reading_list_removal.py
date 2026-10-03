@@ -21,6 +21,7 @@ def test_reading_list_removal():
 const assert = require('node:assert/strict');
 const GRAPH = {active:['Paper','Other']}, ACTIVE = new Set(GRAPH.active);
 let LIVE = true, calls = [], events = [], updates = 0, alerts = [], renders = 0;
+const OFFLINE = {on:false}, OFFLINE_WHY = 'needs the server';
 let resolveFetch;
 let fetch = (url, options) => {
   calls.push([url, JSON.parse(options.body)]);
@@ -74,6 +75,13 @@ const stubRow = () => '';
   await removeReading('Other');
   assert.equal(alerts.length, 3);
   assert.equal(updates, 1);
+  // the offline copy: the control stays in place, disabled, with its reason and no handler
+  OFFLINE.on = true;
+  const before = handlers.length, offline = readingRemoveButton('Other');
+  assert.match(offline, /disabled/);
+  assert.match(offline, /needs the server/);
+  assert.equal(handlers.length, before);
+  OFFLINE.on = false;
   LIVE = false;
   assert.equal(readingRemoveButton('Other'), '');
   assert.doesNotMatch(reading(), /Remove from reading list/);

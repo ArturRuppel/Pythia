@@ -15,6 +15,20 @@ const QUERY = new URLSearchParams(location.search);
 // mount loop in 12-landing.js.
 const DETACHED = LIVE && QUERY.has("detached");
 if (DETACHED) document.body.classList.add("detached");    // hide graph chrome before it paints
+// OFFLINE: this page is the installed app's offline copy — the service worker (viewer/sw.js)
+// marks a page it answers from the cache with data-offline="<ms it was copied>" — or the server
+// has stopped answering since it loaded (20-offline.js calls goOffline). Reading still works from
+// the copy; everything that writes is disabled and says why, rather than failing on the tap.
+const OFFLINE = {on: LIVE && document.documentElement.hasAttribute("data-offline"),
+                 since: +document.documentElement.dataset.offline || null};
+const OFFLINE_WHY = "needs the server: this is the read-only offline copy";
+if (OFFLINE.on) document.body.classList.add("offline");
+function goOffline(){
+  if (OFFLINE.on) return;
+  OFFLINE.on = true;
+  document.body.classList.add("offline");
+  dispatchEvent(new Event("offlinechange"));
+}
 // The move (delta §3): papers on the in-progress worklist (the reading list) are pulled OUT of
 // the browse view's landing column — they live off-board until named by the search box, a
 // library row, or a click in the WIP panel (14-search.js), which is where the reading list is
@@ -29,7 +43,8 @@ if (pdfToggle && LIVE) {
 }
 let PDFS = null;                       // Set of citekeys with a PDF (null until fetched)
 if (LIVE) fetch("pdfs.json").then(r => r.ok ? r.json() : [])
-  .then(l => { PDFS = new Set(l); }).catch(() => { PDFS = new Set(); });
+  .then(l => { PDFS = new Set(l); }).catch(() => { PDFS = new Set(); })
+  .then(() => dispatchEvent(new Event("pdfsready")));   // 20-offline.js trims it to the copy
 // The tip must survive the hop from card to tip (to click the preview): hiding is
 // deferred a beat (dropTip) and cancelled when the pointer arrives (keepTip).
 let tipHide = null;
@@ -96,6 +111,7 @@ function showTip(e, key, el, force){
   const p = PAPERS[key] || STUBS[key];
   let thumb;
   if (cur && !LIVE) thumb = `<div class="nopdf">PDF preview needs <code>lit serve</code></div>`;
+  else if (cur && OFFLINE.on) thumb = `<div class="nopdf">first-page preview ${OFFLINE_WHY}</div>`;
   else if (cur && (!PDFS || !PDFS.has(key))) thumb = `<div class="nopdf">no PDF served (${key}.pdf)</div>`;
   else if (cur) thumb = `<div class="pdf live"><img src="preview/${key}.png" alt="first page of ${key}.pdf"></div>`;
   else thumb = stubAbstract(key, p);   // uncurated: no PDF — show the abstract (live-fetched) instead

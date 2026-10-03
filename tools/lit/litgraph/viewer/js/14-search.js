@@ -583,6 +583,7 @@ if (LIVE && !DETACHED) (function(){
   }
   addEventListener("readinglistchange", e => dropRow(e.detail.removed));
   async function returnToGraph(k, btn){
+    if (OFFLINE.on) return;                   // hidden offline (css/14-offline.css), see the note
     if (btn) btn.disabled = true;
     try {
       await removeFromReadingList(k);
@@ -595,7 +596,8 @@ if (LIVE && !DETACHED) (function(){
     + `<span class="stage">${stage(k)}</span>`
     + `<button class="wp-done" data-done="${k}" title="done: return ${k} to the graph">✓</button>`
     + `</div>`).join("")
-    + `<div class="wp-note">click a row to find it on the board</div>`;
+    + `<div class="wp-note">click a row to find it on the board</div>`
+    + `<div class="wp-note wp-offline">returning a paper to the graph ${OFFLINE_WHY}</div>`;
 
   pill.addEventListener("click", () => {
     const aimPanel = document.getElementById("aimPanel");
