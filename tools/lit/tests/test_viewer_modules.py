@@ -90,3 +90,26 @@ def test_missing_modules_fail_loudly(tmp_path, monkeypatch):
     (tmp_path / "shell.html").write_text(_CSS_MARK, encoding="utf-8")
     with pytest.raises(BuildError, match="no modules"):
         build.template_html()
+
+
+def test_handoff_opens_the_paper_card():
+    """`?goto=<citekey>` is an arrival from outside (Athena, a rendering, a pasted link) and the
+    reader came to read the paper: the card must open, not merely scroll and flash the way the
+    same name does from the search box. The card is opened before the slice branch, so a paper
+    and a slice land in the same state apart from the drilled row."""
+    handoff = (_VIEWER / "js" / "17-handoff.js").read_text(encoding="utf-8")
+    body = handoff.split("function applyGoto(spec){", 1)[1].split("const GOTO", 1)[0]
+    assert body.index("open.add(id); rebuild(id);") < body.index('t.kind !== "slice"')
+    assert "flash(card)" in body
+
+
+def test_handoff_lands_in_the_app_on_touch_devices():
+    """On iPhone and iPad the app opens instead of the board, and a `?goto=` link from Athena or
+    a pasted URL must land there too: the board's resolver names the kind, the app pushes the
+    paper's page (or its slice, or a topic)."""
+    app = (_VIEWER / "js" / "19-app.js").read_text(encoding="utf-8")
+    tail = app[app.index('if (mode === "app") setMode("app");'):]
+    assert 'QUERY.get("goto")' in tail
+    assert "gotoTarget(" in tail
+    assert 'push({ t: "paper", key: t.key })' in tail
+    assert 'focus: t.sid' in tail

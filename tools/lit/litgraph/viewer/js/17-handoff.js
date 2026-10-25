@@ -11,16 +11,17 @@
 //
 // Three shapes, resolved by asking the payload which kind owns the name rather than by spelling:
 //
-//   ?goto=Park2015NatMater        a paper — scroll-and-flash, minting a stub's card if needed
-//   ?goto=Park2015NatMater:c3     a slice — …and open the card, drill to that row, flash it
+//   ?goto=Park2015NatMater        a paper — open its card, minting a stub's card if needed, flash it
+//   ?goto=Park2015NatMater:c3     a slice — …and drill to that row, flash it
 //   ?goto=tissue-behaviour-…      a broad node — hoist its papers, scroll, flash
 //
 // `Citekey:sid` is the schema's own spelling for a sharpened ref (SCHEMA §3), so the URL says what
 // the YAML says. Telling the two apart by shape (CamelCase vs kebab-case) would work today and
 // break on the first citekey or slug that isn't shaped like its neighbours; membership cannot.
 //
-// Naming a CLAIM opens the card that holds it — a claim you cannot see is not a handoff — while
-// naming a PAPER keeps the meaning that gesture has always had in the search box and the library.
+// Naming a CLAIM opens the card that holds it — a claim you cannot see is not a handoff — and
+// naming a PAPER opens its card too: an arrival by link is a request to read, which is where it
+// parts from the same name typed into the search box (that gesture only scrolls and flashes).
 function gotoTarget(spec){
   const s = String(spec || "").trim();
   if(!s) return null;
@@ -62,9 +63,19 @@ function applyGoto(spec){
   gotoPaper(t.key);                          // mints a stub's card, flashes it, owns the walk case
   // In the walk the board is not the view you are looking at: gotoPaper has already re-focused the
   // walk on the paper, and there is no card to open or row to drill.
-  if(t.kind !== "slice" || document.body.classList.contains("walk")) return true;
+  if(document.body.classList.contains("walk")) return true;
   const id = `0:${t.key}`;
-  open.add(id); rebuild(id);                 // focused, so the slices are on the card at all
+  // A handoff is an arrival from elsewhere (Athena, a rendering, a pasted link), and the reader
+  // came to READ the paper, not to find its card on the board: so unlike the same name typed in
+  // the search box, the card opens — on its bibliographic head for a paper, drilled to the row
+  // for a slice. The card is focused first so that the slices are on it at all.
+  open.add(id); rebuild(id);
+  if(t.kind !== "slice"){
+    redraw();
+    const card = document.getElementById("card-" + id);
+    if(card){ card.scrollIntoView({behavior: "smooth", block: "center"}); flash(card); }
+    return true;
+  }
   // A focused card opens on its bibliographic head, with the slice graph folded (and an aim's
   // outline hiding rows inside its own groups); rebuild() clears the ctx state on its way through
   // — so the folds are forced open after the sweep, and the card re-rendered.

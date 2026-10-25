@@ -894,4 +894,14 @@
   const want = QUERY.get("view");
   const mode = want === "app" || want === "board" ? want : (store.get("pythia.view") || (TOUCH ? "app" : "board"));
   if (mode === "app") setMode("app");
+  // ?goto= arrives here too (Athena's reference cards, a pasted link): on a touch device the
+  // app is what opens, so the handoff lands in the app — the paper's page, or its slice — the
+  // same way the board lands on the card (17-handoff). The board's own resolver names the kind.
+  const GOTO_APP = QUERY.get("goto");
+  if (mode === "app" && GOTO_APP && typeof gotoTarget === "function"){
+    const t = gotoTarget(GOTO_APP);
+    if (t && t.kind === "broad"){ tabTo("topics"); push({ t: "broad", slug: t.slug }); }
+    else if (t && t.kind === "slice") push({ t: "paper", key: t.key, focus: t.sid });
+    else if (t) push({ t: "paper", key: t.key });
+  }
 })();
