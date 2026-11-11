@@ -16,6 +16,120 @@ function rung(cssW, zoom){                          // narrowest rung that cover
 // pixels. Highlights and the text overlay are DOM on top, so nothing lossy touches them.
 const pageSrc = (key, n, w) => `page/${key}/${n}.jpg?w=${w}`;
 
+// A page raster is fetched and decoded OFF the document and only then put on screen. The server's
+// JPEGs are progressive (MuPDF writes nothing else), and an <img> that is already in the page
+// paints whatever has arrived: on the iPad a transfer or decode that stopped after the first
+// coarse scan left a page blurred at the top and blank below, for good — nothing retried, and a
+// reload was handed the same half-finished resource. So: wait for the whole image (onload) and
+// its decode; give up on an attempt that takes longer than RASTER_WAIT and ask again under a
+// different URL (`&r=`), so the retry cannot be joined to the stuck request; after RASTER_TRIES
+// reject, and the caller says so on the page instead of leaving it white.
+const RASTER_WAIT = 20000, RASTER_TRIES = 3;
+function loadRaster(src, attempt = 0){
+  return new Promise((resolve, reject) => {
+    const im = new Image(); im.className = "pw-img";
+    let settled = false;
+    const fail = () => {
+      if (settled) return; settled = true; clearTimeout(timer);
+      im.onload = im.onerror = null; im.removeAttribute("src");   // drop the stalled request
+      if (attempt + 1 < RASTER_TRIES) loadRaster(src, attempt + 1).then(resolve, reject);
+      else reject(new Error("raster"));
+    };
+    const ok = () => { if (settled) return; settled = true; clearTimeout(timer); resolve(im); };
+    const timer = setTimeout(fail, RASTER_WAIT);
+    im.onerror = fail;
+    // onload means every byte is here; a decode that still rejects (memory) is the browser's to
+    // redo at paint, and the image is whole either way
+    im.onload = () => { im.decode ? im.decode().then(ok, ok) : ok(); };
+    im.src = attempt ? `${src}&r=${attempt}` : src;
+  });
+}
+
+// ── pages drawn on the device, from its own copy of the PDF ──────────────────────────────
+// The offline copy (20-offline.js) already holds every PDF, and a file on the device cannot
+// stall half way the way a page picture from the server can. So when the copy holds this paper,
+// its pages are drawn here by pdf.js (vendor/pdfjs/, loaded on first use) and the server is asked
+// for nothing but the small JSON — page sizes, word boxes, find hits. A PDF the copy does not
+// hold yet, a browser without Cache Storage, or a pdf.js that will not load all fall back to the
+// server's rasters (loadRaster), which is the whole of the old behaviour.
+// A step that neither finishes nor fails must not hold the pane: pdf.js waiting on a worker that
+// never started, or a render that hangs, would otherwise leave every later page blank.
+function within(promise, ms, what){
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error(what + " timed out")), ms);
+    promise.then(v => { clearTimeout(t); resolve(v); }, e => { clearTimeout(t); reject(e); });
+  });
+}
+const PDFJS_DIR = new URL("vendor/pdfjs/", document.baseURI).href;
+const PDF_CACHE = "pythia-offline-v1";             // keep in step with 20-offline.js and sw.js
+let pdfjsLib = null;
+function pdfjs(){
+  if (!pdfjsLib) pdfjsLib = import(PDFJS_DIR + "pdf.min.mjs").then(lib => {
+    lib.GlobalWorkerOptions.workerSrc = PDFJS_DIR + "pdf.worker.min.mjs";
+    return lib;
+  }).catch(e => { pdfjsLib = null; throw e; });
+  return pdfjsLib;
+}
+// One document open at a time: a parsed PDF is tens of MB in the worker, and the pane shows one
+// paper. Re-mounts of the same paper (a resize, a new quote) reuse it. Resolves to null when the
+// paper cannot be drawn here.
+let pdfOpen = null;                                // {key, task, doc: Promise<PDFDocumentProxy|null>}
+function openPdf(key){
+  if (pdfOpen && pdfOpen.key === key) return pdfOpen.doc;
+  if (pdfOpen) { const old = pdfOpen; old.doc.then(() => { if (old.task) old.task.destroy(); }); }
+  const o = pdfOpen = {key, task: null};
+  o.doc = (async () => {
+    if (!window.isSecureContext || !("caches" in window)) return null;
+    const cache = await caches.open(PDF_CACHE);
+    const hit = await cache.match(new URL(`pdf/${encodeURIComponent(key)}.pdf`, document.baseURI).href);
+    if (!hit) return null;                         // not synced to this device yet
+    // the bytes are handed over whole, straight out of the copy: no range requests, and no
+    // dependence on the service worker being the one to answer them
+    const [lib, data] = await Promise.all([within(pdfjs(), 15000, "pdf.js load"), hit.arrayBuffer()]);
+    o.task = lib.getDocument({data, wasmUrl: PDFJS_DIR + "wasm/", iccUrl: PDFJS_DIR + "iccs/",
+                              standardFontDataUrl: PDFJS_DIR + "standard_fonts/",
+                              isEvalSupported: false});
+    return await within(o.task.promise, 15000, "open");
+  })().catch(() => { if (o.task) o.task.destroy(); if (pdfOpen === o) pdfOpen = null; return null; });
+  return o.doc;
+}
+async function pdfSizes(doc){                      // [[w,h],…] — the /pages manifest, read locally
+  const out = [];
+  for (let n = 1; n <= doc.numPages; n++) {
+    const vp = (await doc.getPage(n)).getViewport({scale: 1});
+    out.push([vp.width, vp.height]);
+  }
+  return out;
+}
+// Draw page `n` at `want` px wide onto a fresh canvas, which is put on screen only once it is
+// finished. One page at a time: the worker is single-threaded anyway, and a queue lets a page the
+// reader has already scrolled past (`live()` false) be skipped instead of drawn for nothing.
+const PDF_MAX_PX = 4e6;                            // pdfview._MAX_PX: the oversized-mediabox guard
+let pdfQueue = Promise.resolve();
+function drawPage(doc, n, want, live){
+  const job = pdfQueue.then(async () => {
+    if (!live()) throw new Error("stale");
+    const page = await within(doc.getPage(n + 1), 10000, "getPage");
+    const base = page.getViewport({scale: 1});
+    let scale = want / base.width;
+    const px = base.width * scale * base.height * scale;
+    if (px > PDF_MAX_PX) scale *= Math.sqrt(PDF_MAX_PX / px);
+    const viewport = page.getViewport({scale});
+    const cv = document.createElement("canvas"); cv.className = "pw-img";
+    cv.width = Math.round(viewport.width); cv.height = Math.round(viewport.height);
+    const task = page.render({canvas: cv, canvasContext: cv.getContext("2d", {alpha: false}), viewport});
+    try { await within(task.promise, 20000, "render"); }
+    catch (e) { try { task.cancel(); } catch {} freeRaster(cv); throw e; }
+    page.cleanup();
+    return cv;
+  });
+  pdfQueue = job.catch(() => {});
+  return job;
+}
+// iOS counts canvas memory against a fixed budget and frees it lazily; zeroing the size gives it
+// back at once.
+function freeRaster(el){ if (el && el.tagName === "CANVAS") el.width = el.height = 0; }
+
 // ── PDF quote location resolution ────────────────────────────────────────────────────────
 // A slice's weld is no longer shown as text — the PDF *is* the link. The quote's location is
 // resolved from its stored quote_loc (lit locate) or live server-side (/resolve → page +
@@ -537,13 +651,25 @@ async function ensureTextLayer(win, key, page, view){
 // as it nears the viewport, so a long PDF stays cheap. Falls back to a single page if the manifest
 // can't be read. Ctrl/⌘-wheel zooms, plain wheel scrolls, the titlebar tracks the current page.
 async function mountDoc(win, key, page, rects, opts){
-  if (OFFLINE.on) return mountCopy(win, key, page);  // no server to raster pages: the PDF itself
   const body = win.querySelector(".pw-body");
   const sizer = win.querySelector(".pw-sizer"), stage = win.querySelector(".pw-stage");
   const view = {z: 1, W0: 0, H0: 0};             // H0 = the whole stack's base height
   let ready; win._ready = new Promise(r => ready = r);
+  const docP = openPdf(key);                      // the device's own copy, or null (→ server rasters)
   let sizes = [];
-  try { sizes = await fetch(`pages/${key}.json`).then(r => r.ok ? r.json() : []); } catch { sizes = []; }
+  if (OFFLINE.on) {
+    // No server: the pages come from the copy or not at all. Sizes are read off the PDF; the
+    // word boxes and find are server-side, so those two tools stay away.
+    const doc = await docP;
+    if (!win.isConnected) return;
+    if (!doc) return mountCopy(win, key, page);   // pdf.js unavailable: the browser's own viewer
+    try { sizes = await pdfSizes(doc); } catch { sizes = []; }
+    if (!win.isConnected) return;
+    if (!sizes.length) return mountCopy(win, key, page);
+    const tb = win.querySelector('.pw-tool[data-t="text"]'); if (tb) tb.hidden = true;
+  } else {
+    try { sizes = await fetch(`pages/${key}.json`).then(r => r.ok ? r.json() : []); } catch { sizes = []; }
+  }
   if (!win.isConnected) return;
   if (!sizes.length) return mountPage(win, key, page, rects, opts);   // manifest unreadable → one page
   const load = win.querySelector(".pw-loading"); if (load) load.remove();
@@ -567,25 +693,45 @@ async function mountDoc(win, key, page, rects, opts){
   }
   ready();
   view.rw = rung(W0, 1);                          // raster rung in force; grows as the user zooms
-  const loadImg = p => { if (p.imgLoaded) return; p.imgLoaded = true;
-    if (!p.img) {                                 // one <img> per page box, reused on re-entry
-      p.img = new Image(); p.img.className = "pw-img"; p.img.decoding = "async";
-      p.div.appendChild(p.img);                   // stays under the absolutely-positioned overlays
-    }
-    p.rw = view.rw; p.img.src = pageSrc(key, p.n, view.rw); };
+  // One raster per page box, swapped in whole (loadRaster). `tok` voids a load that a newer one —
+  // or an unload — has overtaken, so a late arrival never replaces a sharper image or revives a
+  // page that was let go.
+  const loadImg = (p, want = view.rw) => {
+    const tok = p.tok = (p.tok || 0) + 1;
+    p.imgLoaded = true; p.div.classList.remove("pw-failed");
+    const live = () => p.tok === tok && win.isConnected;
+    const server = () => loadRaster(pageSrc(key, p.n, want));
+    docP.then(doc => !doc ? server()
+        : drawPage(doc, p.n, want, live).catch(e => { if (!live()) throw e; return server(); }))
+    .then(im => {
+      if (!live()) return freeRaster(im);
+      const old = p.img;
+      if (old) old.replaceWith(im); else p.div.prepend(im);   // under the positioned overlays
+      freeRaster(old);
+      p.img = im; p.rw = want;
+    }, () => {
+      if (p.tok !== tok) return;
+      if (!p.img) { p.imgLoaded = false; p.div.classList.add("pw-failed"); }   // tap retries
+    });
+  };
+  // A decoded 1600px page is ~13 MB, and a 20-page paper held whole is more than an iPad gives a
+  // web page before it starts dropping decodes. Pages well out of sight give their image back;
+  // drawing one again from the copy (or the HTTP cache) is quick.
+  const unloadImg = p => {
+    p.tok = (p.tok || 0) + 1; p.imgLoaded = false; p.rw = 0;
+    if (p.img) { p.img.remove(); freeRaster(p.img); p.img = null; }
+  };
   // Zooming past the rung a page was rasterized at would just magnify its pixels, so re-fetch the
   // on-screen pages one rung up. Only pages actually in view are upgraded (the rest re-fetch
-  // lazily when the observer reaches them), and the new raster is decoded off-screen before it
-  // replaces the old one, so a zoom never blinks the page out.
+  // lazily when the observer reaches them); the old raster stays up until the new one is whole,
+  // so a zoom never blinks the page out.
   const upgradeRasters = () => {
     const br = body.getBoundingClientRect();
     for (const p of pages) {
       if (!p.imgLoaded || p.rw >= view.rw) continue;
       const r = p.div.getBoundingClientRect();
       if (r.bottom < br.top - 400 || r.top > br.bottom + 400) { p.imgLoaded = false; continue; }
-      const want = view.rw, next = new Image();
-      next.onload = () => { if (p.img && p.rw < want) { p.img.src = next.src; p.rw = want; } };
-      next.src = pageSrc(key, p.n, want);
+      loadImg(p);
     }
   };
   // Zoom before the opening scroll, so "centred on the highlight" is true at whatever distance
@@ -618,9 +764,13 @@ async function mountDoc(win, key, page, rects, opts){
   const REACH = matchMedia("(hover:none) and (pointer:coarse)").matches ? "500px 0px" : "1200px 0px";
   const io = new IntersectionObserver(es => {    // render (+ text, in text mode) pages as they near view
     for (const e of es) { if (!e.isIntersecting) continue; const p = pages[+e.target.dataset.n];
-      loadImg(p); if (win.dataset.tool === "text") buildText(p); }
+      if (!p.imgLoaded) loadImg(p); if (win.dataset.tool === "text") buildText(p); }
   }, {root: body, rootMargin: REACH});
-  pages.forEach(p => io.observe(p.div));
+  const far = new IntersectionObserver(es => {   // …and let them go once they are screens away
+    for (const e of es) if (!e.isIntersecting) unloadImg(pages[+e.target.dataset.n]);
+  }, {root: body, rootMargin: "3000px 0px"});
+  pages.forEach(p => { io.observe(p.div); far.observe(p.div);
+    p.div.addEventListener("click", () => { if (p.div.classList.contains("pw-failed")) loadImg(p); }); });
 
   body.addEventListener("pointerdown", e => {    // pan tool: drag scrolls (text tool: browser selects)
     if (e.pointerType === "touch") return;       // native scroll owns touch; drag-pan is mouse-only
@@ -646,7 +796,8 @@ async function mountDoc(win, key, page, rects, opts){
       for (const p of pages) { const r = p.div.getBoundingClientRect(); if (r.bottom > br.top && r.top < br.bottom) buildText(p); }
     }
   });
-  attachFind(win, key, {body, pages, view});
+  if (!OFFLINE.on) attachFind(win, key, {body, pages, view});
+  else if (sub) sub.textContent += " · offline copy";
 }
 
 // Offline, nothing can rasterize a page, so the pane shows the cached PDF itself in the browser's

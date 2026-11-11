@@ -50,6 +50,12 @@ _PDF_NAME = re.compile(r"^[A-Za-z0-9]+\.pdf$")
 _PNG_NAME = re.compile(r"^[A-Za-z0-9]+\.png$")
 _CITEKEY = re.compile(r"^[A-Za-z0-9]+$")
 _SLICE_ID = re.compile(r"^(?:oq|[bcqm])\d+$")   # SCHEMA §3; `oq` alternates ahead of the class
+# pdf.js, which the viewer loads to draw pages from the device's own copy of a PDF: the library,
+# its worker, and the decoders/fonts/profiles the worker fetches on demand. One optional
+# subdirectory and a plain file name, so the route cannot leave the vendored tree.
+_VENDOR_REQ = re.compile(r"^/vendor/pdfjs/((?:(?:wasm|standard_fonts|iccs)/)?[A-Za-z0-9_.-]+)$")
+_VENDOR_TYPES = {".mjs": "text/javascript; charset=utf-8", ".js": "text/javascript; charset=utf-8",
+                 ".wasm": "application/wasm"}
 _PAGE_REQ = re.compile(r"^/page/([A-Za-z0-9]+)/(\d+)\.(png|jpg)$")
 _WORDS_REQ = re.compile(r"^/words/([A-Za-z0-9]+)/(\d+)\.json$")
 _PAGES_REQ = re.compile(r"^/pages/([A-Za-z0-9]+)\.json$")
@@ -147,6 +153,11 @@ def offline_manifest(root: Path, pdf_dir: Path) -> dict:
     for name in ("manifest.webmanifest", "icon-192.png", "icon-512.png", "apple-touch-icon.png"):
         f = _VIEWER_ASSETS / name
         shell.append({"url": name, "version": _file_version(f), "size": f.stat().st_size})
+    vendor = _VIEWER_ASSETS / "vendor" / "pdfjs"       # pdf.js: what draws a held PDF's pages
+    for f in sorted(f for f in vendor.rglob("*") if f.is_file() and _VENDOR_REQ.match(
+            "/vendor/pdfjs/" + f.relative_to(vendor).as_posix())):
+        shell.append({"url": "vendor/pdfjs/" + f.relative_to(vendor).as_posix(),
+                      "version": _file_version(f), "size": f.stat().st_size})
     for v in views:
         files = _view_files(v["slug"])
         # the view's directory URL is its index.html; its graph.json is the live payload, which
@@ -449,6 +460,14 @@ class _Handler(BaseHTTPRequestHandler):
                 ctype = ("application/manifest+json" if path.endswith(".webmanifest")
                          else "image/png")
                 return self._send(HTTPStatus.OK, ctype, asset.read_bytes(), cache=_PWA_CACHE)
+            vendor = _VENDOR_REQ.match(path)
+            if vendor:
+                asset = _VIEWER_ASSETS / "vendor" / "pdfjs" / vendor.group(1)
+                if ".." in vendor.group(1) or not asset.is_file():
+                    return self._send(HTTPStatus.NOT_FOUND, "text/plain; charset=utf-8", b"not found")
+                return self._send_cached(
+                    _VENDOR_TYPES.get(asset.suffix, "application/octet-stream"),
+                    asset.read_bytes, f'"vendor-{_file_version(asset)}"')
             if path == "/sw.js":
                 # served from the root so its scope covers the whole app; no-cache, so a changed
                 # worker is picked up on the next open rather than after the browser's own day

@@ -6,6 +6,7 @@
    stamps each copy with the version it was fetched at. This worker never writes the cache — the
    sync owns it, so a stamp always describes the body it sits on — it only decides where an
    answer comes from:
+     - pdf.js (vendor/pdfjs/): the cached copy first, like the PDFs it draws.
      - PDFs: the cached copy first (the sync replaces it when its version changes), cut to the
        requested byte range, because Safari and PDF viewers read a PDF in ranges.
      - the page (graph inlined), graph.json, the boot JSON, the PWA files and the alternative
@@ -33,6 +34,9 @@ function shellKey(path) {
   return null;
 }
 const isPdf = (path) => /^pdf\/[A-Za-z0-9]+\.pdf$/.test(path);
+// pdf.js and what its worker fetches: versioned files the sync replaces when they change, so the
+// copy answers first — the pane opens without a round trip, and offline at all.
+const isVendor = (path) => path.startsWith("vendor/pdfjs/");
 
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) => event.waitUntil((async () => {
@@ -48,7 +52,7 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (url.origin !== SCOPE.origin || !url.pathname.startsWith(SCOPE.pathname)) return;
   const path = url.pathname.slice(SCOPE.pathname.length);
-  if (isPdf(path)) return event.respondWith(cacheFirst(request, path));
+  if (isPdf(path) || isVendor(path)) return event.respondWith(cacheFirst(request, path));
   const key = shellKey(path);
   if (key !== null) return event.respondWith(serverFirst(request, key));
   if (request.mode === "navigate") event.respondWith(fetch(request).catch(() => needsServer()));

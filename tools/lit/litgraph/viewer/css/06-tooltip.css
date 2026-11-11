@@ -63,6 +63,9 @@
   .pw-page{position:relative;width:100%;margin-bottom:8px;background:#fff;
     box-shadow:0 1px 3px rgba(28,27,34,.16)}
   .pw-page:last-child{margin-bottom:0}
+  .pw-page.pw-failed{cursor:pointer}
+  .pw-page.pw-failed::after{content:"This page did not load \00b7  tap to retry";position:absolute;
+    inset:0;display:flex;align-items:center;justify-content:center;color:var(--faint)}
   .pw-img{display:block;width:100%;height:auto;pointer-events:none}
   .pw-hl{position:absolute;background:#ffe45a55;outline:1.5px solid #ffd21e;
     mix-blend-mode:multiply;border-radius: 0;pointer-events:none}
