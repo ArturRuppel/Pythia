@@ -1,42 +1,32 @@
 # tests/test_config.py
-"""config.toml round-trip: the `[curation] active` worklist writer (the "move")."""
-from litgraph.config import load_config, set_active
+"""config.toml loading — and the retired reading list (`[curation] active`) staying retired."""
+import dataclasses
+
+import litgraph.config as config
+from litgraph.config import load_config
 
 
-def test_set_active_creates_file_table_and_array(tmp_path):
-    # a repo with no config.toml at all: the first move authors the whole thing
-    active = set_active(tmp_path, "Chen2021Sys", True)
-    assert active == ("Chen2021Sys",)
-    assert load_config(tmp_path).active == ("Chen2021Sys",)
+def test_defaults_without_a_config_file(tmp_path):
+    cfg = load_config(tmp_path)
+    assert cfg.root == tmp_path and cfg.pdf_dir is None and cfg.mailto == ""
 
 
-def test_set_active_add_is_idempotent(tmp_path):
-    set_active(tmp_path, "Chen2021Sys", True)
-    active = set_active(tmp_path, "Chen2021Sys", True)      # already there → no duplicate
-    assert active == ("Chen2021Sys",)
-
-
-def test_set_active_remove_and_remove_absent(tmp_path):
-    set_active(tmp_path, "Chen2021Sys", True)
-    set_active(tmp_path, "Kumar2020Net", True)
-    active = set_active(tmp_path, "Chen2021Sys", False)
-    assert active == ("Kumar2020Net",)
-    # removing one that isn't there is a no-op, not an error
-    assert set_active(tmp_path, "Nope2099X", False) == ("Kumar2020Net",)
-
-
-def test_set_active_preserves_existing_keys_and_comments(tmp_path):
+def test_a_leftover_curation_table_loads_and_is_ignored(tmp_path):
+    """A data repo still carrying the reading list's `[curation] active` must load without error:
+    the desk replaced it (SCHEMA §4), so the table is dead weight until someone deletes it."""
     (tmp_path / "config.toml").write_text(
         '# my library config\n'
         'mailto = "me@example.org"  # polite pool\n'
         'pdf_dir = "/data/pdfs"\n'
+        '\n'
+        '[curation]\n'
+        'active = ["Chen2021Sys", "Kumar2020Net"]\n'
     )
-    set_active(tmp_path, "Chen2021Sys", True)
-    text = (tmp_path / "config.toml").read_text()
-    # the human's comments and other keys survive the round-trip
-    assert "# my library config" in text
-    assert "# polite pool" in text
     cfg = load_config(tmp_path)
     assert cfg.mailto == "me@example.org"
     assert str(cfg.pdf_dir) == "/data/pdfs"
-    assert cfg.active == ("Chen2021Sys",)
+    assert "active" not in {f.name for f in dataclasses.fields(cfg)}
+
+
+def test_the_reading_list_writer_is_gone():
+    assert not hasattr(config, "set_active")

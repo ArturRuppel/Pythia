@@ -23,7 +23,6 @@ from __future__ import annotations
 from pathlib import Path
 
 from litgraph.build import to_json_dict
-from litgraph.config import load_config
 from litgraph.graph import build_graph
 from litgraph.quotes import polish_graph
 
@@ -44,14 +43,14 @@ def payload_dict(root: Path, pdf_dir: Path, *,
     May raise `BuildError`: a repo mid-edit is a normal state, and both servers turn that
     into a readable 500 so the fix is edit-and-refresh rather than restart. Quotes are
     polished against the `.md` full text in `pdf_dir` (falling back to the raw anchor when a
-    paper has no `.md`), and `[curation] active` is re-read per call, so editing it is live —
-    it is now a plain reading list (CURATION.md), not a curation-session worklist.
+    paper has no `.md`). Each paper's `pass` and `validated` ride in it, so the viewer derives
+    the desk (SCHEMA §4) from the payload alone.
 
     `views` and `include_aims` are serve-only: a `lit build` artifact has no server to answer
     `/views/`, so it never receives that key and never grows the dropdown it feeds."""
     graph = build_graph(root)
     polish_graph(graph, pdf_dir)
-    out = to_json_dict(graph, active=load_config(root).active, include_aims=include_aims)
+    out = to_json_dict(graph, include_aims=include_aims)
     if views:
         out["views"] = views
     return out

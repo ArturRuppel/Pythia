@@ -195,6 +195,9 @@ class Paper:
     type: str
     year: int | None
     pass_: int | None = None        # YAML/JSON key is "pass"; "pass" is a Python keyword
+    # the pass the OWNER has validated (SCHEMA §4). None = never validated, a new paper. Written
+    # only by `lit validate` / the viewer's Validate action, never by ingest or by curation.
+    validated: int | None = None
     doi: str | None = None
     note: str | None = None
     abstract: str | None = None     # verbatim abstract (written by `lit ingest`)
@@ -307,6 +310,11 @@ def paper_from_raw(citekey: str, raw: dict) -> Paper:
             raise BuildError(f"{citekey}: `{group}` belongs to an aim, not a paper "
                              "(programme design §2) — a paper records what was measured, "
                              "not what is planned")
+    validated = raw.get("validated")
+    if validated is not None and (isinstance(validated, bool) or not isinstance(validated, int)
+                                  or not 0 <= validated <= 4):
+        raise BuildError(f"{citekey}: `validated` must be an int 0–4, got {validated!r} "
+                         "(SCHEMA §4)")
     slices: list[Slice] = []
     for group, kind in _SLICE_GROUPS.items():
         for s in raw.get(group, []) or []:
@@ -314,7 +322,7 @@ def paper_from_raw(citekey: str, raw: dict) -> Paper:
     return Paper(
         citekey=citekey, curated=True,
         title=raw.get("title", ""), type=raw.get("type", "original"),
-        year=raw.get("year"), pass_=raw.get("pass"),
+        year=raw.get("year"), pass_=raw.get("pass"), validated=validated,
         doi=raw.get("doi"), note=raw.get("note"), abstract=raw.get("abstract"),
         authors=_authors_from(raw), tags=list(raw.get("tags", []) or []), slices=slices,
     )
@@ -336,6 +344,9 @@ def load_repo(root: Path) -> tuple[dict[str, Paper], dict[str, BroadNode]]:
             raw = raw or {}
             if citekey in papers:
                 raise BuildError(f"{citekey} is both curated and a stub (SCHEMA §6.3)")
+            if "validated" in raw:
+                raise BuildError(f"{citekey}: `validated` is only on a curated paper — a stub "
+                                 "has nothing to validate (SCHEMA §4)")
             papers[citekey] = Paper(
                 citekey=citekey, curated=False,
                 title=raw.get("title", ""), type=raw.get("type", "original"),
@@ -709,11 +720,14 @@ def _slice_color(s: Slice) -> str:
 
 
 def _order(papers: dict[str, Paper]) -> list[str]:
-    """Landing-list order: curated (by pass desc, year desc, citekey) before stubs
-    (year desc, citekey). A missing `pass` encodes as -1 so it sorts last among curated."""
+    """Landing-list order: curated (by validated pass desc, then curation pass desc, year desc,
+    citekey) before stubs (year desc, citekey). The validated pass leads because it is the status
+    the viewer shows (SCHEMA §4); a never-validated paper and a missing `pass` encode as -1, so
+    they sort last on their key, and before any paper is validated the order is the pass ranking."""
     curated = [p for p in papers.values() if p.curated]
     stubs = [p for p in papers.values() if not p.curated]
     curated.sort(key=lambda p: (
+        -(p.validated if p.validated is not None else -1),
         -(p.pass_ if p.pass_ is not None else -1), -(p.year or 0), p.citekey))
     stubs.sort(key=lambda p: (-(p.year or 0), p.citekey))
     return [p.citekey for p in curated] + [p.citekey for p in stubs]

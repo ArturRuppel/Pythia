@@ -49,7 +49,8 @@ and there is no `tier:` field. Promotion means moving the `stubs.yaml` entry int
 `curated/` file and slicing it. Edges that pointed at the container `P` then sharpen to its
 slices (CONCEPT section 2). This breadth tier stays emergent. The orthogonal maturity tier,
 how far curation ran on a scale of 0 to 4, is the one thing recorded explicitly, as `pass:`
-on the curated paper (section 4, CONCEPT section 10.1).
+on the curated paper (section 4, CONCEPT section 10.1), beside the owner's own `validated:`
+(how far the owner has validated it, section 4).
 
 A slice's home in a container needs no syntax. A `claims`, `questions` or `methods` entry
 inside a paper file is that paper containing it. It is the only implicit edge.
@@ -159,6 +160,7 @@ The generator resolves every ref into an edge and fails the build on a dangling 
 | `type` | ✔ | enum | `original \| review \| methods \| perspective \| commentary`. A filter only, with no evidential weight (CONCEPT section 6) |
 | `year` | ✔ | int | |
 | `pass` | – | int | curation depth, `0`–`4`, described below. Absent on a stub |
+| `validated` | – | int | the pass the **owner** has validated, `0`–`4`, described below. Written only by `lit validate` or the viewer's Validate action; never by `lit ingest`, never by curation. Absent on a stub |
 | `doi` / `url` / `pdf` | – | str | `pdf` defaults to `<citekey>.pdf` under the config PDF dir |
 | `authors` | ✔ | list | each `{name, position?, corresponding?}`; list order is byline order. `position` is one of `first \| middle \| last`, default `middle`. It is an authorship tier, so several `first`s mean co-first. `corresponding: true` is independent of position, any number |
 | `note` | – | str | free-text curator orientation, for example the experimental setup. Not a graph element |
@@ -172,9 +174,21 @@ metadata and extracted full text and no slices; 1 abstract, where every slice on
 supported by the abstract; 2 introduction and discussion, adding borrowed claims, graph
 connections and open questions; 3 results, with claims sharpened and welded to phrases
 describing the data; 4 methods, read precisely with their citations traced and linked, the
-full sweep. It is the one authored process-state field, because how far curation went
+full sweep. It is the one process-state field curation authors, because how far curation went
 cannot be reconstructed from the slices (CONCEPT section 10.1). The breadth tier stays
 emergent via file presence (section 1).
+
+`validated` is the pass the owner has validated, and it is the owner's alone. `pass` is raised
+by curation, often by agents in batches, so it no longer says how deeply the owner engaged with
+a paper; `validated` does. Absent means the owner has never validated the paper at any depth (a
+newly ingested paper); `validated: 0` means the owner knows the paper is in the library, unread.
+Validating sets it to the current `pass`, or to a lower level the owner chooses. The **desk** is
+derived from the two and never stored: a curated paper is on it iff `validated` is absent or
+differs from `pass` (an absent `pass` counts as 0). So an agent rewriting a paper at the same pass
+leaves it off the desk, and only a change of `pass` puts it back. A `validated` above `pass` is
+legal (the owner read further than curation ran) but unusual, so the build flags it rather than
+failing. The viewer shows `validated` as the paper's status (docs/2026-11-11-desk.md). The line
+sits directly under `pass:`.
 
 `tags` is a container filter axis for organizing and finding papers, the same category as
 `type`: a cheap filter with no evidential weight (CONCEPT section 6). Nothing in the graph
@@ -309,7 +323,8 @@ The generator enforces these and the build fails otherwise.
    `type`, and derives no graph property (section 4).
 8. **Enums are valid.** `type` as listed in section 4; `position` in `first|middle|last`;
    `corresponding` either `true` or absent; `pass` in `0|1|2|3|4` and only on a curated
-   paper.
+   paper; `validated` an int in `0|1|2|3|4` and only on a curated paper. A `validated` above
+   the paper's `pass` is not an error: `lit build` reports it as a `desk-flag:` warning.
 
 ### Quote windows: `quote_loc`
 

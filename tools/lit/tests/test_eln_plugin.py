@@ -43,7 +43,7 @@ def test_read_only_mount_carries_no_serve_only_keys(client):
     """The labbook never answers /views/, so the viewer it serves must not advertise it."""
     payload = json.loads(client.get("/litgraph/graph.json").data)
     assert "views" not in payload
-    assert payload["active"] == []
+    assert "active" not in payload             # the reading list is retired (the desk replaced it)
 
 
 def test_index_serves_the_viewer_page(client):

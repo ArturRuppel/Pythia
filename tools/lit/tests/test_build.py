@@ -9,11 +9,12 @@ EXAMPLE = Path(__file__).resolve().parents[3] / "example"
 
 def test_to_json_dict_shape():
     d = to_json_dict(build_graph(EXAMPLE))
-    assert set(d) == {"papers", "broad", "stubs", "order", "active", "topics", "collections"}
-    assert d["active"] == []           # no active list passed → empty (static build carries none)
+    # no "active": the reading list is retired; the desk is derived from pass + validated below
+    assert set(d) == {"papers", "broad", "stubs", "order", "topics", "collections"}
     # curated paper carries computed slices + edge lists
     p = d["papers"]["Chen2021Sys"]
     assert p["cur"] is True and p["pass"] == 4
+    assert p["validated"] is None      # never validated → the viewer shows it as new, on the desk
     assert p["authors"][0] == ["Chen, Mei", "first", False]
     assert p["tags"] == ["batching", "throughput", "queueing-model"]   # tags ride into the JSON
     assert d["papers"]["Kumar2020Net"]["tags"] == []                   # no tags → empty list
@@ -74,11 +75,21 @@ def test_to_json_dict_shape():
     assert d["order"][0] == "Chen2021Sys"
 
 
-def test_active_list_filters_to_curated_in_order():
-    g = build_graph(EXAMPLE)
-    # a curated key stays; a stub key and an unknown key are dropped; given order is preserved
-    d = to_json_dict(g, active=("Patel2017Vldb", "Lopez2019Arch", "Nope2099X", "Chen2021Sys"))
-    assert d["active"] == ["Lopez2019Arch", "Chen2021Sys"]
+def test_static_build_carries_pass_and_validated_for_every_paper(tmp_path):
+    """`lit build` lists the desk too: every curated paper ships both numbers, so the offline /
+    static viewer can derive it. Only `lit serve` can write `validated`."""
+    import shutil
+    from litgraph.store import set_validated
+    root = tmp_path / "lib"
+    shutil.copytree(EXAMPLE, root)
+    set_validated(root, "Kumar2020Net", 1)
+    emit(build_graph(root), tmp_path / "dist")
+    papers = json.loads((tmp_path / "dist" / "graph.json").read_text())["papers"]
+    for k, p in papers.items():
+        if p.get("aim") or p.get("narr"):
+            continue
+        assert "pass" in p and "validated" in p, k
+    assert papers["Kumar2020Net"]["validated"] == 1 and papers["Kumar2020Net"]["pass"] == 3
 
 
 # --- the topic axis (SCHEMA §9): emitted as a saved search, never a graph node --------------

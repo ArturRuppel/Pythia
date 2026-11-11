@@ -131,7 +131,8 @@ def _slice_json(s: Slice) -> dict:
 
 def _paper_json(p: Paper, builds: list[dict]) -> dict:
     return {
-        "cur": p.curated, "pass": p.pass_, "type": p.type, "year": p.year,
+        "cur": p.curated, "pass": p.pass_, "validated": p.validated,
+        "type": p.type, "year": p.year,
         "curation_updated": p.curation_updated,
         "title": p.title, "authors": [[n, pos, corr] for n, pos, corr in p.authors],
         "tags": p.tags, "note": p.note, "abs": p.abstract, "head": p.head,
@@ -233,8 +234,7 @@ def _collections_json(g: Graph) -> dict:
             for slug, c in g.collections.items()}
 
 
-def to_json_dict(g: Graph, active: "tuple[str, ...]" = (),
-                 include_aims: bool = False) -> dict:
+def to_json_dict(g: Graph, include_aims: bool = False) -> dict:
     """Serialize the graph for the viewer. Aims — and the narrative axis that orders them —
     are **off by default**: the landing view is paper-centric (it sorts by pass / year /
     authors, none of which an aim has), so they are not papers and must not stand among them.
@@ -261,17 +261,13 @@ def to_json_dict(g: Graph, active: "tuple[str, ...]" = (),
                               if b.kind == "broad claim" else None),
                     "leads_to": list(b.leads_to)}
              for slug, b in g.broad.items()}
-    # `active` is the manual in-progress list (config.toml); keep only citekeys that are actually
-    # curated papers, preserving the given order. Empty for static `lit build` (the WIP panel is
-    # serve-only), so a shared artifact never carries the curator's private worklist.
-    active_curated = [k for k in active if k in curated]
-    # Unlike `active` above, topics carry no worklist or server state — they are public library
-    # structure, so (per SCHEMA §9) they belong in both a static `lit build` and `lit serve` alike.
-    # Collections (SCHEMA §10) are the same kind of thing — curator-authored structure over the
-    # papers — so they ride in both as well.
+    # Topics carry no server state — they are public library structure, so (per SCHEMA §9) they
+    # belong in both a static `lit build` and `lit serve` alike. Collections (SCHEMA §10) are the
+    # same kind of thing — curator-authored structure over the papers — so they ride in both as
+    # well. So does the desk: it is derived in the viewer from each paper's `pass` and `validated`,
+    # both above, so a static build lists it too; only `lit serve` can write `validated`.
     out = {"papers": curated, "broad": broad, "stubs": stubs, "order": g.order,
-           "active": active_curated, "topics": _topics_json(g),
-           "collections": _collections_json(g)}
+           "topics": _topics_json(g), "collections": _collections_json(g)}
     # Narrative rides along with aims (see the flag's docstring above) and only when there is
     # one: a repo with no programme/narrative/ tree must not grow an empty key, matching every
     # other optional axis's "absent means absent" contract.

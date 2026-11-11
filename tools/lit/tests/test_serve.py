@@ -549,33 +549,48 @@ def test_quote_loc_rejects_bad_payloads(srv):
                 {"citekey": "Chen2021Sys", "slice_id": "../x", "page": 0, "rects": [[0, 0, 1, 1]]})[0] == 400
 
 
-# ── the move: POST /active writes the reading list ────────────────────────────────────────
+# ── the desk: POST /validate writes the owner's `validated` ────────────────────────────────
 
 
-def test_active_move_writes_config_and_shows_in_graph(srv, repo):
-    from litgraph.config import load_config
-    status, res = post(srv, "/active", {"citekey": "Chen2021Sys", "active": True})
-    assert status == 200 and res == {"ok": True, "active": ["Chen2021Sys"]}
-    # persisted to config.toml (curator state, deployment-local)
-    assert load_config(repo).active == ("Chen2021Sys",)
-    # and the rebuilt graph.json carries it (re-read per request), so the viewer filters it out
-    assert json.loads(get(srv, "/graph.json")[2])["active"] == ["Chen2021Sys"]
-    # symmetric removal
-    _, res = post(srv, "/active", {"citekey": "Chen2021Sys", "active": False})
-    assert res == {"ok": True, "active": []}
-    assert load_config(repo).active == ()
+def test_validate_sets_the_shown_pass_and_the_paper_leaves_the_desk(srv, repo):
+    from litgraph.desk import on_desk
+    from litgraph.graph import build_graph
+    path = repo / "curated" / "Kumar2020Net.yaml"
+    before = path.read_text()
+    g = json.loads(get(srv, "/graph.json")[2])
+    assert g["papers"]["Kumar2020Net"]["validated"] is None          # new
+    status, res = post(srv, "/validate", {"citekey": "Kumar2020Net", "pass": 3})
+    assert status == 200 and res == {"ok": True, "citekey": "Kumar2020Net", "validated": 3, "pass": 3}
+    after = path.read_text()
+    # one line added, directly under `pass:`, every comment and line of the file kept
+    assert [l for l in after.splitlines() if l != "validated: 3"] == before.splitlines()
+    lines = after.splitlines()
+    assert lines[lines.index("pass: 3") + 1] == "validated: 3"
+    # the rebuilt payload carries it, and the paper is off the desk
+    assert json.loads(get(srv, "/graph.json")[2])["papers"]["Kumar2020Net"]["validated"] == 3
+    assert not on_desk(build_graph(repo).papers["Kumar2020Net"])
 
 
-def test_active_move_rejects_non_curated_and_bad_payloads(srv, repo):
-    # a stub / unknown key has no local subgraph to curate → 404 (curated-only for now)
-    assert post(srv, "/active", {"citekey": "Patel2017Vldb", "active": True})[0] == 404
-    assert post(srv, "/active", {"citekey": "Nope2099X", "active": True})[0] == 404
-    # malformed: missing / non-bool `active`, or a traversal citekey
-    assert post(srv, "/active", {"citekey": "Chen2021Sys"})[0] == 400
-    assert post(srv, "/active", {"citekey": "Chen2021Sys", "active": "yes"})[0] == 400
-    assert post(srv, "/active", {"citekey": "../etc", "active": True})[0] == 400
-    # a non-curated key can still be *removed* (idempotent cleanup — no curated-file check)
-    assert post(srv, "/active", {"citekey": "Nope2099X", "active": False})[0] == 200
+def test_validate_without_a_pass_takes_the_current_one_and_accepts_a_lower(srv, repo):
+    status, res = post(srv, "/validate", {"citekey": "Chen2021Sys"})
+    assert status == 200 and res["validated"] == 4 and res["pass"] == 4
+    status, res = post(srv, "/validate", {"citekey": "Chen2021Sys", "pass": 1})   # lower: chosen
+    assert status == 200 and res["validated"] == 1
+    assert "validated: 1" in (repo / "curated" / "Chen2021Sys.yaml").read_text()
+
+
+def test_validate_rejects_stubs_and_bad_payloads(srv, repo):
+    assert post(srv, "/validate", {"citekey": "Patel2017Vldb"})[0] == 404        # a stub
+    assert post(srv, "/validate", {"citekey": "Nope2099X"})[0] == 404
+    assert post(srv, "/validate", {"citekey": "../etc"})[0] == 400
+    for bad in (5, -1, "3", True, 2.0):
+        assert post(srv, "/validate", {"citekey": "Chen2021Sys", "pass": bad})[0] == 400
+    assert "validated" not in (repo / "curated" / "Chen2021Sys.yaml").read_text()
+
+
+def test_the_reading_list_endpoint_is_gone(srv, repo):
+    assert post(srv, "/active", {"citekey": "Chen2021Sys", "active": True})[0] == 404
+    assert not (repo / "config.toml").exists() or "curation" not in (repo / "config.toml").read_text()
 
 
 # ── CLI wiring ───────────────────────────────────────────────────────────────────────────
@@ -607,19 +622,12 @@ def test_cli_has_no_focus_command(capsys):
     assert "invalid choice: 'focus'" in capsys.readouterr().err
 
 
-def test_cli_curate_moves_paper_in_and_out(repo, capsys):
-    from litgraph.config import load_config
-    rc = cli.main(["curate", "Chen2021Sys", "--root", str(repo)])
-    assert rc == 0 and "moved into" in capsys.readouterr().out
-    assert load_config(repo).active == ("Chen2021Sys",)
-    rc = cli.main(["curate", "Chen2021Sys", "--done", "--root", str(repo)])
-    assert rc == 0 and "returned to the graph" in capsys.readouterr().out
-    assert load_config(repo).active == ()
-
-
-def test_cli_curate_rejects_non_curated(repo, capsys):
-    rc = cli.main(["curate", "Patel2017Vldb", "--root", str(repo)])   # a stub, not curated
-    assert rc == 1 and "not a curated paper" in capsys.readouterr().err
+def test_cli_has_no_curate_command(capsys):
+    # `lit curate` drove the reading list (`[curation] active`), which the desk replaced
+    with pytest.raises(SystemExit) as exc:
+        cli.main(["curate", "Chen2021Sys"])
+    assert exc.value.code == 2
+    assert "invalid choice: 'curate'" in capsys.readouterr().err
 
 
 def test_cli_serve_fails_fast_on_broken_repo(repo, monkeypatch, capsys):
@@ -737,15 +745,12 @@ def test_read_only_refuses_writes_to_synced_content(ro_srv, repo):
     assert (repo / "curated" / "Chen2021Sys.yaml").read_text() == before
 
 
-def test_read_only_still_moves_papers_in_and_out_of_the_reading_list(ro_srv, repo):
-    """config.toml is host-local — every sync excludes it — so the mirror's reading list is
-    its own and no push can clobber it. Curating from the couch is most of the point."""
-    status, body = post(ro_srv, "/active", {"citekey": "Chen2021Sys", "active": True})
-    assert status == 200 and body["ok"] and "Chen2021Sys" in body["active"]
-    assert "Chen2021Sys" in (repo / "config.toml").read_text()
-
-    status, body = post(ro_srv, "/active", {"citekey": "Chen2021Sys", "active": False})
-    assert status == 200 and "Chen2021Sys" not in body["active"]
+def test_read_only_refuses_validate(ro_srv, repo):
+    """`validated` lives on the paper's own file, which a mirror's next pull overwrites."""
+    before = (repo / "curated" / "Chen2021Sys.yaml").read_text()
+    status, _ = post(ro_srv, "/validate", {"citekey": "Chen2021Sys"})
+    assert status == 405
+    assert (repo / "curated" / "Chen2021Sys.yaml").read_text() == before
 
 
 def test_read_only_still_reads_and_still_resolves_quotes(ro_srv):

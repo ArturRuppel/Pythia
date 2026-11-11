@@ -397,6 +397,129 @@ def edit_tags(root: Path, citekey: str, tags: list[str], remove: bool = False) -
     return result
 
 
+_TOP_KEY = re.compile(r"^(?P<key>[A-Za-z_][\w-]*):")
+_VALIDATED_LINE = re.compile(r"^validated:[ \t]*[^#\n]*?(?P<tail>[ \t]+#.*)?$")
+
+
+def _validated_line_edit(text: str, value: int) -> str | None:
+    """`text` with its top-level `validated:` set to `value`, as a pure line edit: an existing line
+    keeps its end-of-line comment; a new line goes directly under `pass:` (past that line's indented
+    continuation — a wrapped comment), else where `pass:` would sit (after `year`, `type` or
+    `title`, past a block scalar's lines). Everything else in the file stays byte-identical, which
+    a ruamel round trip does not promise (it re-spaces aligned flow values). None when there is no
+    anchor line to place it by; the caller then checks the result parses to the intended mapping."""
+    lines = text.splitlines(keepends=True)
+    for i, line in enumerate(lines):
+        m = _VALIDATED_LINE.match(line.rstrip("\n"))
+        if m:
+            eol = "\n" if line.endswith("\n") else ""
+            lines[i] = f"validated: {value}{m.group('tail') or ''}{eol}"
+            return "".join(lines)
+    tops = {}
+    for i, line in enumerate(lines):
+        m = _TOP_KEY.match(line)
+        if m and m.group("key") not in tops:
+            tops[m.group("key")] = i
+    anchor = next((tops[k] for k in ("pass", "year", "type", "title") if k in tops), None)
+    if anchor is None:
+        return None
+    j = anchor + 1
+    while j < len(lines) and lines[j][:1] in (" ", "\t") and lines[j].strip():
+        j += 1                                     # the anchor's own continuation lines
+    if not lines[j - 1].endswith("\n"):
+        lines[j - 1] += "\n"
+    lines.insert(j, f"validated: {value}\n")
+    return "".join(lines)
+
+
+def _hand_on_trailing_comment(doc, key: str, new_key: str) -> None:
+    """ruamel hangs everything between a scalar and the next key on the scalar: its end-of-line
+    comment, that comment's indented continuation lines, and the blank lines and column-0 comments
+    that really introduce the next key. Inserting `new_key` straight after `key` would land it
+    below all of that — under the next section's heading comment, past a blank line. Split the
+    token: `key` keeps its own comment (end-of-line plus indented continuations), and whatever
+    followed that moves onto `new_key`, so the new line sits directly under `key`'s and the file
+    keeps its spacing."""
+    ca = doc.ca.items.get(key)
+    tok = ca[2] if ca and len(ca) > 2 else None
+    if tok is None:
+        return
+    lines = tok.value.split("\n")
+    i = 0
+    if lines[0].lstrip().startswith("#"):          # an end-of-line comment on `key`'s own line
+        i = 1
+        while i < len(lines) and lines[i][:1] in (" ", "\t") and lines[i].lstrip().startswith("#"):
+            i += 1                                 # …and its indented continuation lines
+    own, rest = lines[:i], "\n".join(lines[i:])
+    if own:
+        tok.value = "\n".join(own) + "\n"
+    else:
+        ca[2] = None
+    if rest:
+        from ruamel.yaml.error import CommentMark
+        from ruamel.yaml.tokens import CommentToken
+        value = rest if not own else "\n" + rest   # without an own comment, `rest` starts the line end
+        doc.ca.items[new_key] = [None, None, CommentToken(value, CommentMark(0), None), None]
+
+
+@dataclass
+class Validation:
+    citekey: str
+    old: int | None          # the validated pass before (None: never validated)
+    new: int                 # the validated pass after
+    pass_: int               # the paper's curation pass at write time (absent counts as 0)
+
+    @property
+    def changed(self) -> bool:
+        return self.old != self.new
+
+
+def set_validated(root: Path, citekey: str, value: int | None = None,
+                  dry_run: bool = False) -> Validation:
+    """Set `validated` on curated/<citekey>.yaml — the OWNER's number (SCHEMA §4): to the paper's
+    current `pass` (read from the same document being written, so it is the pass on disk at write
+    time), or to `value`. Round-tripped exactly like `edit_tags`, so comments and formatting survive.
+    An existing `validated:` line is set in place; a new one goes directly under `pass:` (or where
+    `pass:` would be — after `year`/`type`/`title` — when the paper has none). Writes nothing when
+    the value is unchanged or on `dry_run`.
+
+    This is the one writer `lit validate` and serve's POST /validate go through. Nothing else in
+    the tool writes the field: not ingest, not curation. Raises FileNotFoundError for a paper that
+    is not curated and ValueError for a value outside 0–4."""
+    path = curated_dir(root) / f"{citekey}.yaml"
+    if not path.is_file():
+        raise FileNotFoundError(f"not a curated paper: {citekey}")
+    if value is not None and (isinstance(value, bool) or not isinstance(value, int)
+                              or not 0 <= value <= 4):
+        raise ValueError(f"validated must be an int 0–4, got {value!r}")
+    text = path.read_text()
+    doc = rt_yaml().load(text) or {}
+    raw_pass = doc.get("pass")
+    pass_ = raw_pass if isinstance(raw_pass, int) and not isinstance(raw_pass, bool) else 0
+    old = doc.get("validated")
+    old = old if isinstance(old, int) and not isinstance(old, bool) else None
+    new = pass_ if value is None else value
+    result = Validation(citekey, old, new, pass_)
+    if dry_run or (not result.changed and "validated" in doc):
+        return result
+    edited = _validated_line_edit(text, new)
+    if edited is not None and safe_yaml().load(edited) == {**safe_yaml().load(text), "validated": new}:
+        path.write_text(edited)                    # byte-exact elsewhere: the common case
+        return result
+    # a layout the line edit does not recognise: the ruamel round trip `edit_tags` uses
+    if "validated" in doc:
+        doc["validated"] = new                     # in place — keep its position and comment
+    else:
+        anchor = next((k for k in ("pass", "year", "type", "title") if k in doc), None)
+        doc.insert(list(doc).index(anchor) + 1 if anchor else 0, "validated", new)
+        if anchor:
+            _hand_on_trailing_comment(doc, anchor, "validated")
+    _quote_sharpened_refs(doc)
+    with path.open("w") as fh:
+        rt_yaml().dump(doc, fh)
+    return result
+
+
 def write_abstract(root: Path, citekey: str, abstract: str, dry_run: bool = False) -> bool:
     """Set `abstract` on curated/<citekey>.yaml, round-tripped so the curator's comments and
     formatting survive. Inserted before `tags`/`authors` to match the on-disk field order

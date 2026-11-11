@@ -266,6 +266,118 @@ def _map(args) -> int:
     return 2
 
 
+def _desk_scope(graph, args) -> tuple[set[str] | None, str] | int:
+    """The citekeys `--collection` / `--topic` / `--tag` narrow the desk to, and a label for them;
+    an int return is an exit code (an unknown collection or topic)."""
+    from .topics import papers_in
+    only: set[str] | None = None
+    scope = ""
+
+    def narrow(keys: set[str]) -> None:
+        nonlocal only
+        only = keys if only is None else only & keys
+
+    if getattr(args, "collection", None):
+        c = graph.collections.get(args.collection)
+        if c is None:
+            print(f"error: no such collection: {args.collection}", file=sys.stderr)
+            return 2
+        narrow(set(c.papers))
+        scope += f" [collection {args.collection}]"
+    if getattr(args, "topic", None):
+        if args.topic not in graph.topics:
+            print(f"error: no such topic: {args.topic}", file=sys.stderr)
+            return 2
+        narrow(set(papers_in(graph.topics, args.topic, graph.papers)))
+        scope += f" [topic {args.topic}]"
+    if getattr(args, "tag", None):
+        t = args.tag.lower()
+        narrow({ck for ck, p in graph.papers.items()
+                if p.curated and t in {x.lower() for x in p.tags}})
+        scope += f" [tag {args.tag}]"
+    return only, scope
+
+
+def _desk(args) -> int:
+    """`lit desk` — read-only, derived from the loaded graph alone (no PDF / quote checks)."""
+    import json
+    from . import desk as dk
+    cfg = load_config(args.root)
+    try:
+        graph = build_graph(cfg.root)
+    except BuildError as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 1
+    narrowed = _desk_scope(graph, args)
+    if isinstance(narrowed, int):
+        return narrowed
+    only, scope = narrowed
+    groups = dk.desk(graph.papers, only)
+    if args.json:
+        data = {"new": [r.as_json() for r in groups["new"]],
+                "changed": [r.as_json() for r in groups["changed"]],
+                "total": len(groups["new"]) + len(groups["changed"])}
+        if scope:
+            data = {"scope": {"collection": args.collection, "topic": args.topic,
+                              "tag": args.tag}, **data}
+        print(json.dumps(data, indent=1, ensure_ascii=False))
+    else:
+        print(dk.format_desk(groups, scope), end="")
+    return 0
+
+
+def _validate(args) -> int:
+    """`lit validate` — the owner records the pass they have validated (SCHEMA §4)."""
+    from . import store
+    from .desk import desk as desk_of, label
+    cfg = load_config(args.root)
+    scoped = args.all or args.collection
+    if scoped and args.citekeys:
+        print("error: name citekeys or a scope (--all / --collection), not both", file=sys.stderr)
+        return 2
+    if scoped and args.level is not None:
+        print("error: --pass applies to named papers; --all / --collection validate each "
+              "paper at its own current pass", file=sys.stderr)
+        return 2
+    if not scoped and not args.citekeys:
+        print("error: name a citekey, or validate a scope with --all / --collection",
+              file=sys.stderr)
+        return 2
+    keys = list(args.citekeys)
+    if scoped:
+        # the desk needs the graph (collections resolve against it); named papers do not, so a
+        # library mid-edit elsewhere never stops the owner validating the paper they just read
+        try:
+            graph = build_graph(cfg.root)
+        except BuildError as e:
+            print(f"error: {e}", file=sys.stderr)
+            return 1
+        narrowed = _desk_scope(graph, args)
+        if isinstance(narrowed, int):
+            return narrowed
+        groups = desk_of(graph.papers, narrowed[0])
+        keys = [r.citekey for r in groups["new"] + groups["changed"]]
+    tag = "DRY-RUN — nothing written" if args.dry_run else "written"
+    changed, failed = 0, 0
+    for k in keys:
+        try:
+            v = store.set_validated(cfg.root, k, args.level, dry_run=args.dry_run)
+        except FileNotFoundError as e:
+            print(f"error: {e}", file=sys.stderr)
+            failed += 1
+            continue
+        before = "new" if v.old is None else f"validated {v.old}"
+        ahead = f"  (above curated {v.pass_})" if v.new > v.pass_ else ""
+        if v.changed:
+            changed += 1
+            print(f"  {k}: {before} → validated {label(v.new)}{ahead}")
+        else:
+            print(f"  {k}: already validated {label(v.new)}")
+    print(f"lit validate ({tag}): {changed} changed, {len(keys) - changed - failed} unchanged"
+          + (f", {failed} not curated" if failed else ""))
+    return 1 if failed else 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="lit", description="literature_graph tools")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -415,12 +527,25 @@ def main(argv: list[str] | None = None) -> int:
     p_map.add_argument("--json", action="store_true", help="machine-readable output, stable keys")
     p_map.add_argument("--root", default=".", help="data root (claims/, questions/, methods/, curated/)")
 
-    p_cur = sub.add_parser("curate", help="move a paper into (or out of) the in-progress worklist "
-                                          "(`[curation] active` in config.toml)")
-    p_cur.add_argument("citekey", help="curated paper to move")
-    p_cur.add_argument("--done", action="store_true",
-                       help="return the paper to the graph (remove from the worklist)")
-    p_cur.add_argument("--root", default=".", help="data root (curated/, stubs.yaml, config.toml)")
+    p_desk = sub.add_parser("desk", help="the papers whose curation moved past what you validated: "
+                                         "new (never validated) and changed (validated N, pass M)")
+    p_desk.add_argument("--collection", default=None, help="only papers in this collection")
+    p_desk.add_argument("--topic", default=None, help="only papers this topic reaches (SCHEMA §9)")
+    p_desk.add_argument("--tag", default=None, help="only papers carrying this tag")
+    p_desk.add_argument("--json", action="store_true", help="machine-readable output, stable keys")
+    p_desk.add_argument("--root", default=".", help="data root (curated/, collections/, topics/)")
+
+    p_val = sub.add_parser("validate", help="record the pass you have validated on a paper "
+                                            "(the owner's number; agents never run this)")
+    p_val.add_argument("citekeys", nargs="*", help="curated paper(s) to validate")
+    p_val.add_argument("--pass", dest="level", type=int, default=None, choices=range(5),
+                       metavar="N", help="validate at N (0–4) instead of the paper's current pass")
+    v_scope = p_val.add_mutually_exclusive_group()
+    v_scope.add_argument("--collection", default=None,
+                         help="validate every paper of this collection that is on the desk")
+    v_scope.add_argument("--all", action="store_true", help="validate every paper on the desk")
+    p_val.add_argument("--dry-run", action="store_true", help="print what would change; write nothing")
+    p_val.add_argument("--root", default=".", help="data root (curated/, collections/)")
 
     args = parser.parse_args(argv)
 
@@ -461,6 +586,9 @@ def main(argv: list[str] | None = None) -> int:
             print(f"quote-flag: {w}", file=sys.stderr)
         for w in verify_quote_locs_graph(graph, pdf_dir):
             print(f"quote-flag: {w}", file=sys.stderr)
+        from .desk import flags as desk_flags
+        for w in desk_flags(graph.papers):
+            print(f"desk-flag: {w}", file=sys.stderr)
         emit(graph, out)
         print(f"built {len(graph.papers)} papers -> {out}/index.html")
         return 0
@@ -653,20 +781,11 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "map":
         return _map(args)
 
-    if args.command == "curate":
-        from .config import set_active
-        cfg = load_config(args.root)
-        key = args.citekey
-        add = not args.done
-        if add and not (cfg.root / "curated" / f"{key}.yaml").is_file():
-            print(f"error: not a curated paper: {key}", file=sys.stderr)
-            return 1
-        active = set_active(cfg.root, key, add)
-        if add:
-            print(f"curate → {key} moved into the in-progress zone ({len(active)} in progress)")
-        else:
-            print(f"curate → {key} returned to the graph ({len(active)} in progress)")
-        return 0
+    if args.command == "desk":
+        return _desk(args)
+
+    if args.command == "validate":
+        return _validate(args)
 
     if args.command == "enrich":
         from . import store

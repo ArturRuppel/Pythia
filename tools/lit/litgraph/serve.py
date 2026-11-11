@@ -37,7 +37,7 @@ from urllib.parse import parse_qs, unquote, urlparse
 
 import pymupdf as fitz  # pymupdf — already a hard dependency (litgraph.pdf)
 
-from litgraph import config, endpoints, pdfview, store
+from litgraph import endpoints, pdfview, store
 from litgraph.build import render_html
 from litgraph.config import load_config
 from litgraph.graph import BuildError, build_graph
@@ -308,8 +308,8 @@ def _int_param(url: str, name: str) -> int | None:
 
 def _source_version(root: Path, pdf_dir: Path) -> tuple[int, int]:
     """Everything `payload_dict` reads, as a cheap (max mtime ns, file count) fingerprint —
-    curated/|claims/|questions/|methods/|topics/|collections/, programme/aims/, config.toml's
-    active list, and the `.md` full text quotes are polished against.
+    curated/|claims/|questions/|methods/|topics/|collections/, programme/aims/, config.toml, and the
+    `.md` full text quotes are polished against.
 
     The count rides along because a deletion *lowers* the max mtime, so mtime alone would call
     a shrunken repo unchanged. ~600 stats, a millisecond, against a rebuild costing a second."""
@@ -679,16 +679,12 @@ class _Handler(BaseHTTPRequestHandler):
         n = int(self.headers.get("Content-Length", 0))
         return json.loads(self.rfile.read(n) or b"{}")
 
-    # What a mirror must refuse: /quote_loc writes curated/*.yaml, which is *synced* content —
-    # an edit there survives only until the next push overwrites it.
-    #
-    # /active is deliberately NOT here, though it writes too. It writes config.toml, which every
-    # sync excludes precisely because it is host-local, so a mirror's reading list is its own and
-    # nothing clobbers it. The reading list is viewer state, not library content, and being able
-    # to shuffle it from the couch is most of why the mirror exists.
+    # What a mirror must refuse: /quote_loc and /validate write curated/*.yaml, which is *synced*
+    # content — an edit there survives only until the next push overwrites it. (`validated` is the
+    # owner's number on the paper's own file, SCHEMA §4: validate on the authoring host.)
     #
     # /resolve is absent for a different reason: it's a pure function of a PDF, nothing to guard.
-    _MUTATING = frozenset({"/quote_loc"})
+    _MUTATING = frozenset({"/quote_loc", "/validate"})
 
     def do_POST(self) -> None:  # noqa: N802 (http.server API)
         path = unquote(urlparse(self.path).path)
@@ -719,22 +715,26 @@ class _Handler(BaseHTTPRequestHandler):
                     return self._send(HTTPStatus.NOT_FOUND, "text/plain; charset=utf-8",
                                       f"{e}\n".encode())
                 return self._send(HTTPStatus.OK, "application/json", b'{"ok":true}')
-            if path == "/active":
-                # the move: add/remove a paper from the reading list (`[curation] active` in
-                # config.toml). Curated-only for now — a stub has no local subgraph to curate
-                # (stub promotion is a later item). The write is picked up on the next rebuild.
+            if path == "/validate":
+                # the owner validates a paper (the desk, SCHEMA §4): `validated` := `pass` when the
+                # body names none, else the given 0–4. The viewer always names the pass it SHOWED,
+                # so a pass an agent raised since the page loaded is never validated unseen — the
+                # paper simply stays on the desk. The write is picked up on the next rebuild.
                 body = self._read_json()
-                key, active = body.get("citekey", ""), body.get("active")
-                curated = self.server.root / "curated" / f"{key}.yaml"
-                if not _CITEKEY.match(key) or not isinstance(active, bool):
+                key, value = body.get("citekey", ""), body.get("pass")
+                if not _CITEKEY.match(key) or not (
+                        value is None or (isinstance(value, int) and not isinstance(value, bool)
+                                          and 0 <= value <= 4)):
                     return self._send(HTTPStatus.BAD_REQUEST, "text/plain; charset=utf-8",
-                                      b"bad active payload\n")
-                if active and not curated.is_file():
+                                      b"bad validate payload\n")
+                try:
+                    v = store.set_validated(self.server.root, key, value)
+                except FileNotFoundError as e:
                     return self._send(HTTPStatus.NOT_FOUND, "text/plain; charset=utf-8",
-                                      f"not a curated paper: {key}\n".encode())
-                new_active = config.set_active(self.server.root, key, active)
+                                      f"{e}\n".encode())
                 return self._send(HTTPStatus.OK, "application/json; charset=utf-8",
-                                  json.dumps({"ok": True, "active": list(new_active)}).encode())
+                                  json.dumps({"ok": True, "citekey": key, "validated": v.new,
+                                              "pass": v.pass_}).encode())
             return self._send(HTTPStatus.NOT_FOUND, "text/plain; charset=utf-8",
                               b"not found\n")
         except (ValueError, json.JSONDecodeError):
