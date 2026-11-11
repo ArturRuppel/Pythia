@@ -30,7 +30,7 @@ import unicodedata
 from dataclasses import dataclass, field
 from pathlib import Path
 
-import fitz  # pymupdf — a litgraph hard dependency
+import pymupdf as fitz  # pymupdf — a litgraph hard dependency
 
 from .fulltext import _normalize, repair_legacy_glyphs
 from .pdfview import words_of

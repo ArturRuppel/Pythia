@@ -13,7 +13,7 @@ import re
 import unicodedata
 from pathlib import Path
 
-import fitz  # pymupdf — a litgraph hard dependency
+import pymupdf as fitz  # pymupdf — a litgraph hard dependency
 
 from .fulltext import repair_legacy_glyphs
 

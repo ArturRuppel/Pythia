@@ -35,7 +35,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
 
-import fitz  # pymupdf — already a hard dependency (litgraph.pdf)
+import pymupdf as fitz  # pymupdf — already a hard dependency (litgraph.pdf)
 
 from litgraph import config, endpoints, pdfview, store
 from litgraph.build import render_html

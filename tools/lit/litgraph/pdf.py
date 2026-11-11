@@ -11,7 +11,7 @@ from __future__ import annotations
 import re
 import unicodedata
 
-import fitz  # pymupdf
+import pymupdf as fitz  # pymupdf
 
 from .citekey import fold_ascii
 from .roles import AuthorMarkers
