@@ -293,8 +293,12 @@ The generator enforces these and the build fails otherwise.
 4. **Quote integrity.** Every claim `quote`, and every question or method `quote` when
    present, must be grounded in the paper's `.md` full text. Verbatim substrings are the
    default. A quote containing `[...]` is accepted when non-contiguous passages are
-   intentionally shortened, but the generator flags such quotes for curator review. It never
-   silently treats them as verbatim.
+   intentionally shortened, but only if every segment is itself verbatim and the segments
+   occur in the full text in the order written (each is searched after the previous one's
+   match). A segment that is not is flagged exactly like a non-verbatim quote, by number. A
+   join that passes is still flagged for curator review, with the characters cut between its
+   segments, so a stitch across distant sections stands out. It is never silently treated as
+   verbatim. `lit preview --scratch` runs the same check at proposition time.
 5. **`leads-to` is acyclic.** The support DAG is many-to-many with no cycles.
 6. **Kind coherence.** `leads_to` targets a same-kind broad slug: claim to claim, question
    to question, method to method. `answers` targets a question. `corroborates` and

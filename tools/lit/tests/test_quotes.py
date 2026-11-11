@@ -7,7 +7,8 @@ from pathlib import Path
 import fitz
 
 from litgraph.graph import Graph, Paper, Slice
-from litgraph.quotes import polish, polish_graph, quote_loc_covers, strip_artifacts, verify_quote_locs_graph
+from litgraph.quotes import (polish, polish_graph, polish_quote, quote_loc_covers, strip_artifacts,
+                             verify_quote_locs_graph)
 
 
 # --- strip_artifacts ---------------------------------------------------------
@@ -98,6 +99,44 @@ def test_polish_joined_quote_polishes_each_segment():
     assert disp == "First sentence about coupling. […] Then the disruption result here."
 
 
+def test_polish_join_with_a_segment_absent_is_not_found():
+    # the stitched-in segment is not in the paper (a superscript lost in transcription)
+    ft = "The rate scales as N<sup>−1</sup> at high density. Nothing else here.\n"
+    r = polish_quote("The rate scales as [...] N−1 at high density", ft)
+    assert r.status == "not_found"
+    assert r.missing == [2] and r.segments == 2
+
+
+def test_polish_join_segments_out_of_order_is_not_found():
+    ft = "First sentence about coupling. A middle one. Then the disruption result here.\n"
+    r = polish_quote("the disruption result [...] about coupling", ft)
+    assert r.status == "not_found" and r.missing == [2]
+
+
+def test_polish_join_searches_each_segment_after_the_previous():
+    # "the cells" occurs first in the opening sentence; the join's second segment must be
+    # matched after "we then imaged", i.e. at its second occurrence
+    ft = "the cells were plated. Later we then imaged the cells moving apart.\n"
+    r = polish_quote("we then imaged [...] the cells moving", ft)
+    assert r.status == "joined" and r.gaps == [1]
+
+
+def test_polish_join_gaps_are_the_tightest_reading():
+    # the first segment also occurs far earlier (an abstract repeating it): the gap reported
+    # is to the occurrence just before the second segment, not the first match in the text
+    ft = ("Cells jam at confluence. " + "Filler sentence. " * 20
+          + "Cells jam at confluence, and then they stop moving.\n")
+    r = polish_quote("Cells jam at confluence [...] they stop moving", ft)
+    assert r.status == "joined"
+    assert r.gaps == [len(", and then ")]
+
+
+def test_polish_join_three_segments_reports_every_gap():
+    ft = "Alpha one. Beta two. Gamma three.\n"
+    r = polish_quote("Alpha one [...] Beta two [...] Gamma three", ft)
+    assert r.status == "joined" and r.segments == 3 and r.gaps == [2, 2]
+
+
 # --- polish_graph integration ------------------------------------------------
 
 def _graph(*slices: Slice) -> Graph:
@@ -120,6 +159,30 @@ def test_polish_graph_sets_display_and_flags(tmp_path: Path):
     assert c2.quote_display == "a quote not in the md at all"           # stripped-only fallback
     assert any("c2" in w and "not found" in w for w in warns)
     assert not any("c1" in w for w in warns)
+
+
+def test_polish_graph_flags_join_by_segment(tmp_path: Path):
+    (tmp_path / "Demo2020Jour.md").write_text(
+        "First sentence about coupling. A middle one. Then the disruption result here.\n",
+        encoding="utf-8")
+    g = _graph(
+        Slice(id="c1", kind="claim", text="ok", quote="about coupling [...] the disruption result"),
+        Slice(id="c2", kind="claim", text="bad", quote="about coupling [...] a segment not in it"),
+        Slice(id="c3", kind="claim", text="swap", quote="the disruption result [...] about coupling"),
+    )
+    warns = {w.split(" ", 1)[0]: w for w in polish_graph(g, tmp_path)}
+    gap = len(". A middle one. Then ")
+    assert warns["Demo2020Jour:c1"].endswith(
+        f"authored [...] join — verify the segments (2 found in order; chars cut: {gap})")
+    for sid in ("c2", "c3"):
+        assert warns[f"Demo2020Jour:{sid}"].endswith(
+            "quote not found verbatim in the full text: [...] segment 2 of 2 (searched in order)")
+
+
+def test_polish_graph_join_without_md_is_flagged_like_a_plain_quote(tmp_path: Path):
+    g = _graph(Slice(id="c1", kind="claim", text="x", quote="some anchor [...] more text"))
+    assert polish_graph(g, tmp_path) == [
+        "Demo2020Jour:c1 quote not found verbatim in the full text (no Demo2020Jour.md)"]
 
 
 def test_polish_graph_no_md_flags_all_quotes(tmp_path: Path):
@@ -237,3 +300,4 @@ def test_verify_quote_locs_graph_flags_out_of_range_page(tmp_path: Path):
                       quote_loc={"page": 3, "rects": [[0.1, 0.1, 0.5, 0.2]]}))
     warns = verify_quote_locs_graph(g, tmp_path)
     assert len(warns) == 1 and "c1" in warns[0] and "out of range" in warns[0]
+

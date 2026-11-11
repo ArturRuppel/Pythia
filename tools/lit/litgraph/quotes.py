@@ -9,8 +9,12 @@ upgrades on the next build with no data migration.
 Two tiers, exactly as SCHEMA §6.4 anticipates:
   * a plain anchor is located verbatim in the `.md`, expanded, stripped  -> status "verbatim"
   * an authored `[...]` join is non-contiguous by construction, so it is polished
-    segment-by-segment (each segment located/stripped) and flagged  -> status "joined"
-A quote that can't be located at all is stripped-only and flagged  -> status "not_found".
+    segment-by-segment and flagged for review  -> status "joined". Every segment must be
+    found verbatim, *in order*: segment k is searched only after segment k-1's match, so a
+    join cannot stitch passages out of sequence and a segment missing from the paper is not
+    excused by its neighbours.
+A quote that can't be located (for a join: any one segment, in order) is flagged
+ -> status "not_found".
 
 Stripping is deliberately conservative: a parenthetical is deleted only when it reads as a
 citation (a Capitalized name followed by a year, nothing but name/year/punctuation inside),
@@ -23,6 +27,7 @@ from __future__ import annotations
 
 import re
 import unicodedata
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import fitz  # pymupdf — a litgraph hard dependency
@@ -115,48 +120,99 @@ def _sentence_span(text: str, lo: int, hi: int) -> tuple[int, int]:
     return start, end
 
 
+def _pattern(needle: str) -> "re.Pattern[str]":
+    """`needle` as a regex tolerant of runs of whitespace differing (newline vs space)."""
+    return re.compile(re.sub(r"(?:\\ )+", r"\\s+", re.escape(needle)))
+
+
 def _locate(text: str, needle: str) -> tuple[int | None, int | None]:
     """Find `needle` in `text`, tolerant of runs of whitespace differing (newline vs space)."""
     i = text.find(needle)
     if i >= 0:
         return i, i + len(needle)
-    pat = re.sub(r"(?:\\ )+", r"\\s+", re.escape(needle))
-    m = re.search(pat, text)
+    m = _pattern(needle).search(text)
     return (m.start(), m.end()) if m else (None, None)
+
+
+def _locate_in_order(text: str, segs: list[str]) -> list[tuple[int, int] | None]:
+    """Place each segment of a join in `text`, in order: segment k only counts if it occurs
+    after segment k-1's match. Returns one (start, end) per segment, or None for a segment with
+    no occurrence after the previous placed one (the search for the next resumes after the last
+    segment that *was* placed).
+
+    A forward pass takes the earliest occurrence of each segment — for "do they occur in this
+    order at all" that greedy choice is never wrong. It can, though, pin an early segment to a
+    first-match artefact (the same phrase in the abstract) far from where the passage really is,
+    so a backward pass then slides each placed segment to its *latest* occurrence still ending
+    before the next one starts. The order is unchanged; the gaps it reports are the tightest
+    reading of the join, which is what a reviewer needs to judge whether it is honest."""
+    occ = [[(m.start(), m.end()) for m in _pattern(seg).finditer(text)] if text else []
+           for seg in segs]
+    spans: list[tuple[int, int] | None] = []
+    at = 0
+    for hits in occ:
+        hit = next((h for h in hits if h[0] >= at), None)
+        spans.append(hit)
+        if hit:
+            at = hit[1]
+    limit: int | None = None          # the start of the next placed segment; the last stays put
+    for k in range(len(segs) - 1, -1, -1):
+        if spans[k] is None:
+            continue
+        if limit is not None:
+            spans[k] = [h for h in occ[k] if spans[k][0] <= h[0] and h[1] <= limit][-1]
+        limit = spans[k][0]
+    return spans
 
 
 # --- top-level polish ----------------------------------------------------------------
 
-def _polish_contiguous(anchor: str, fulltext: str) -> tuple[str, bool]:
-    """Expand a single verbatim anchor to its sentence(s) and strip it. Returns
-    (display, located)."""
-    lo, hi = _locate(fulltext, anchor) if fulltext else (None, None)
-    if lo is None:
-        return strip_artifacts(anchor), False
+def _expand(fulltext: str, span: tuple[int, int] | None, anchor: str) -> str:
+    """The display text for one located anchor: grown out to its sentence(s) and stripped. An
+    anchor that was not located (`span` None) is stripped but not expanded."""
+    if span is None:
+        return strip_artifacts(anchor)
     # Detect boundaries on a cite-blanked copy (offsets preserved); slice the original.
-    s0, s1 = _sentence_span(_blank_cites(fulltext), lo, hi)
-    sentence = " ".join(fulltext[s0:s1].split())
-    return strip_artifacts(sentence), True
+    s0, s1 = _sentence_span(_blank_cites(fulltext), *span)
+    return strip_artifacts(" ".join(fulltext[s0:s1].split()))
+
+
+@dataclass
+class Polished:
+    """What `polish` learned about one quote. `status` is 'verbatim' | 'joined' | 'not_found'.
+    For a join, `segments` counts its non-empty segments, `missing` lists the 1-based numbers of
+    those not found in order, and `gaps` holds the characters of full text cut between each
+    consecutive pair (only when every segment was found)."""
+    display: str
+    status: str
+    segments: int = 1
+    missing: list[int] = field(default_factory=list)
+    gaps: list[int] = field(default_factory=list)
+
+
+def polish_quote(quote: str, fulltext: str) -> Polished:
+    """Polish a stored quote for display and check it against the paper's `.md` (SCHEMA §6.4).
+    `fulltext` is the normalized `.md` ("" if unavailable — then every quote is stripped but not
+    expanded, and reported not_found). A join is not_found unless every segment occurs in order."""
+    anchor = " ".join(quote.split())
+    if JOIN not in anchor:
+        lo, hi = _locate(fulltext, anchor) if fulltext else (None, None)
+        span = None if lo is None else (lo, hi)
+        return Polished(_expand(fulltext, span, anchor), "verbatim" if span else "not_found")
+    segs = [seg for seg in (part.strip() for part in anchor.split(JOIN)) if seg]
+    spans = _locate_in_order(fulltext, segs)
+    display = JOIN_DISPLAY.join(_expand(fulltext, sp, seg) for seg, sp in zip(segs, spans))
+    missing = [k + 1 for k, sp in enumerate(spans) if sp is None]
+    if missing:
+        return Polished(display, "not_found", len(segs), missing)
+    gaps = [b[0] - a[1] for a, b in zip(spans, spans[1:])]
+    return Polished(display, "joined", len(segs), [], gaps)
 
 
 def polish(quote: str, fulltext: str) -> tuple[str, str]:
-    """Polish a stored quote for display. Returns (quote_display, status) where status is
-    'verbatim' | 'joined' | 'not_found'. `fulltext` is the paper's `.md` ("" if unavailable
-    — then the quote is stripped but not expanded, and reported not_found)."""
-    anchor = " ".join(quote.split())
-    if JOIN in anchor:
-        segs = [seg.strip() for seg in anchor.split(JOIN)]
-        located_all = True
-        out: list[str] = []
-        for seg in segs:
-            if not seg:
-                continue
-            disp, ok = _polish_contiguous(seg, fulltext)
-            located_all = located_all and ok
-            out.append(disp)
-        return JOIN_DISPLAY.join(out), "joined"
-    disp, ok = _polish_contiguous(anchor, fulltext)
-    return disp, ("verbatim" if ok else "not_found")
+    """`polish_quote` reduced to (quote_display, status)."""
+    p = polish_quote(quote, fulltext)
+    return p.display, p.status
 
 
 # --- graph integration ---------------------------------------------------------------
@@ -174,7 +230,12 @@ def _read_fulltext(pdf_dir: Path | None, citekey: str) -> str:
 def polish_graph(graph, pdf_dir: Path | None) -> list[str]:
     """Set `quote_display` on every quoted slice of every curated paper, reading each
     paper's `.md` from `pdf_dir`. Returns human-readable flags (SCHEMA §6.4) for quotes
-    that need curator review: authored `[...]` joins and anchors not found verbatim."""
+    that need curator review: anchors not found verbatim (for a join: any segment not found
+    in order, named by number), and authored `[...]` joins whose segments all were, with the
+    characters cut between them so stitching across distant sections stands out.
+
+    `lit build`, `lit preview` (including `--scratch`, at proposition time) and the servers all
+    run this one function, so the three cannot disagree about which quote is verbatim."""
     warnings: list[str] = []
     for ck, p in graph.papers.items():
         if not p.curated or not any(s.quote for s in p.slices):
@@ -183,13 +244,19 @@ def polish_graph(graph, pdf_dir: Path | None) -> list[str]:
         for s in p.slices:
             if not s.quote:
                 continue
-            display, status = polish(s.quote, fulltext)
-            s.quote_display = display
-            if status == "not_found":
-                where = "" if fulltext else f" (no {ck}.md)"
+            r = polish_quote(s.quote, fulltext)
+            s.quote_display = r.display
+            if r.status == "not_found":
+                where = f" (no {ck}.md)" if not fulltext else ""
+                if not where and r.missing:
+                    nums = ", ".join(str(k) for k in r.missing)
+                    which = "segment" if len(r.missing) == 1 else "segments"
+                    where = f": [...] {which} {nums} of {r.segments} (searched in order)"
                 warnings.append(f"{ck}:{s.id} quote not found verbatim in the full text{where}")
-            elif status == "joined":
-                warnings.append(f"{ck}:{s.id} authored [...] join — verify both segments")
+            elif r.status == "joined":
+                cut = " + ".join(f"{g:,}" for g in r.gaps)
+                warnings.append(f"{ck}:{s.id} authored [...] join — verify the segments "
+                                f"({r.segments} found in order; chars cut: {cut})")
     return warnings
 
 
