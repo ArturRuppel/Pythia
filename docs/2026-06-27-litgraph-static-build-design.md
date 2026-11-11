@@ -67,7 +67,7 @@ data repo YAML ──build_graph()──▶ Graph ──emit()──▶ dist/ind
    are valid: they are curated containers with empty slice lists.
 
 2. **Resolve.** Classify every edge ref by its **form** (SCHEMA §3): local slice (`c1`/`m2`/`q1`)
-   · broad slug (`force-propagation-is-active`) · container citekey (`Liu2010Pnas`) · sharpened
+   · broad slug (`throughput-scales-with-batching`) · container citekey (`Liu2010Pnas`) · sharpened
    `citekey:id`. Build the node table (papers · slices · broad nodes · stubs) and resolve each
    `grounded_in` / `leads_to` / `corroborates` / `contradicts` / `answers` ref to a node.
    **Validate (SCHEMA §6)** and fail the build with a precise message on: dangling ref,
@@ -121,10 +121,10 @@ Mirrors the mockup's `PAPERS` / `BROAD` / edge structures, but every field is *c
       ],
       "grounds": [{"key": "Sabass2007BiophysJ", "via": "m2"}, ...],   // → left columns
       "lateral": [{"key": "Liu2010Pnas", "sign": "corr", "via": "c1"}, ...],
-      "cons":    [{"slug": "force-propagation-is-active", "via": "c1"}, ...]  // → right band
+      "cons":    [{"slug": "throughput-scales-with-batching", "via": "c1"}, ...]  // → right band
     }
   },
-  "broad":  { "force-propagation-is-active": {"kind": "broad claim", "text": "...",
+  "broad":  { "throughput-scales-with-batching": {"kind": "broad claim", "text": "...",
               "meter": {"s": 1, "c": 0}} },
   "stubs":  { "Liu2010Pnas": {"title": "...", "year": 2010, "type": "original", "doi": "..."} },
   "order":  ["Ruppel2023eLife", ...]            // papers only; curated→stub, pass desc, year desc

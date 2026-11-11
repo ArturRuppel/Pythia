@@ -34,7 +34,7 @@ The library already derives a per-paper headline (`paper.head`, the terminal cla
 182 of 204 papers, and it is a sentence rather than a title.
 
 **Similarity is the wrong relation.** The four-paper dispute now sitting on
-`cell-shape-encodes-material-state` fails a title embedding in both directions at once:
+`queue-depth-encodes-saturation` fails a title embedding in both directions at once:
 Bera2026's *Shape-Independent Fluidization in Epithelial Cell Monolayers* and Damavandi2025's
 *Universality in the Mechanical Behavior of Vertex Models* are direct opponents on one claim
 and share almost no vocabulary, while Rizzi2026's *Universal Persistent Brownian Motions in
@@ -75,8 +75,8 @@ plurality vote of its members' topics.
 That vote is a near-tie almost everywhere. Across the 14 leaf topics the winning topic's
 share has a **median of 0.22**, and it is **under 40% for 38 of the 42** claims whose papers
 carry tags. Dropping the methods subtree barely moves it (median 0.29, 33 of 42 under 40%).
-`cell-shape-encodes-material-state` is the clearest case: Material state & jamming 19, Tissue
-mechanics 19, Methods & measurement 18. Any lane assignment there is a coin flip rendered as
+`queue-depth-encodes-saturation` is the clearest case: Saturation & queueing 19,
+Performance 19, Methods & tooling 18. Any lane assignment there is a coin flip rendered as
 a fact.
 
 So topic is a **filter** in this view, which is a use that does not require picking a winner,
@@ -92,11 +92,11 @@ encoding of a counterexample, per Bera2026's curation note — the sign wins ove
 **The two kinds of dispute stay apart.** Only 14 signed edges name a broad claim directly;
 260 name another paper's slice. When both endpoints of one of those sit under the same claim,
 that is a disagreement *inside* the claim rather than *with* it, and it is much the commoner
-case: 9 claims carry one, led by `cell-shape-encodes-material-state` with 8 pairs. The two
+case: 9 claims carry one, led by `queue-depth-encodes-saturation` with 8 pairs. The two
 counts are never summed, and the readout lists the pairs by name.
 
 **A programme aim is not evidence.** `graph.papers` carries the programme's aims alongside
-the literature (`type: "aim"`). They are dropped everywhere: counting `@fluid-solid-switch`
+the literature (`type: "aim"`). They are dropped everywhere: counting `@adaptive-batching`
 would put the lab's own proposal into a claim's support meter, and it did, until `verify.py`
 caught the resulting disagreement with the `meter` the generator already computes.
 

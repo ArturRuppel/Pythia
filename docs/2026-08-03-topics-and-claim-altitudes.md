@@ -37,7 +37,7 @@ relations and collapsing them costs the model its only structural guarantee.
 
 Applied to this library, the claim ladder had two rungs left in it — all seven new nodes in
 §2 are contestable propositions with a real null hypothesis behind them. It stops there. The
-ceiling is where statements like *"cells respond to force"* start appearing, and the two
+ceiling is where statements like *"systems respond to load"* start appearing, and the two
 apexes sit one rung below it: anything that would parent *both* of them is exactly that
 sentence. That is the altitude at which to switch axes, not before and not after.
 
@@ -51,18 +51,18 @@ First rung — five heads over the existing claims:
 
 | New head | Children | The null it was written against |
 |---|---|---|
-| `supracellular-stress-field-sets-behaviour` | 5 | passive continuum transmission + cell-autonomous behaviour |
-| `active-stress-generates-tissue-form` | 3 | form imposed externally or by a geometric blueprint |
-| `cytoskeletal-architecture-sets-cell-mechanics` | 3 | actomyosin sets force, other networks are inert scaffolding |
-| `mechanotransduction-is-a-force-loaded-relay` | 2 | cells infer mechanics from a chemical proxy |
-| `mechanical-response-is-context-dependent` | 2 | responses differ in magnitude but not in sign across contexts |
+| `backpressure-sets-pipeline-behaviour` | 5 | load passes through passively; each stage behaves on its own |
+| `queueing-generates-tail-latency` | 3 | tail latency imposed from outside, by hardware or the network |
+| `memory-layout-sets-operator-cost` | 3 | compute sets cost; memory layout is inert |
+| `admission-control-is-a-load-signal-relay` | 2 | schedulers infer load from a static proxy |
+| `tuning-effect-is-workload-dependent` | 2 | tuning gains differ in magnitude but not in sign across workloads |
 
-plus the existing `tissue-material-state-is-emergent`, which gained
-`cell-shape-encodes-material-state` and `tissue-operates-at-jamming-criticality` beneath it.
+plus the existing `system-performance-is-emergent`, which gained
+`queue-depth-encodes-saturation` and `systems-run-at-the-saturation-knee` beneath it.
 
-Two claims are deliberately **multi-parented** — `division-injects-active-stress` and
-`topological-defects-are-force-sources` each ladder into two heads. Nothing is duplicated;
-the DAG carries it. `go-or-grow-dichotomy` is left an orphan root, which is a valid resting
+Two claims are deliberately **multi-parented** — `retries-inject-load` and
+`hot-partitions-are-latency-sources` each ladder into two heads. Nothing is duplicated;
+the DAG carries it. `scale-up-or-scale-out-dichotomy` is left an orphan root, which is a valid resting
 state, not a gap to be filled with a head that would not earn its ≥2 children.
 
 ### The apex — two, and deliberately not one
@@ -71,17 +71,17 @@ Second rung. The five heads sorted themselves by *scale*, so they cap in two pla
 
 | Apex | Children | The null it was written against |
 |---|---|---|
-| `tissue-behaviour-is-collective-mechanics` | `supracellular-stress-field-sets-behaviour`, `active-stress-generates-tissue-form`, `tissue-material-state-is-emergent` | tissue behaviour is the superposition of cell-autonomous programmes, mechanics a downstream readout rather than a cause |
-| `mechanics-and-signalling-share-one-architecture` | `cytoskeletal-architecture-sets-cell-mechanics`, `mechanotransduction-is-a-force-loaded-relay` | mechanics and mechanotransduction ride on separable machinery — an inert load-bearing scaffold on one side, dedicated sensors feeding a chemical cascade on the other |
+| `pipeline-behaviour-is-collective-dynamics` | `backpressure-sets-pipeline-behaviour`, `queueing-generates-tail-latency`, `system-performance-is-emergent` | pipeline behaviour is the superposition of stage-local behaviours, load a downstream readout rather than a cause |
+| `performance-and-control-share-one-substrate` | `memory-layout-sets-operator-cost`, `admission-control-is-a-load-signal-relay` | performance and control ride on separable machinery — an inert data path on one side, dedicated monitors feeding a control loop on the other |
 
 **They are not joined, and joining them is the mistake to resist.** A rung above both would
-have to say something like *"cells respond to force"* — the §1 test rejects it, because
+have to say something like *"systems respond to load"* — the §1 test rejects it, because
 nobody can disagree with it. Two apexes with no common parent is what an honest ceiling
 looks like; a single root is an aesthetic preference, not a claim.
 
-The other two roots stay roots. `mechanical-response-is-context-dependent` is methodological
+The other two roots stay roots. `tuning-effect-is-workload-dependent` is methodological
 rather than scalar — it cuts across both apexes and belongs under neither — and
-`go-or-grow-dichotomy` remains the deliberate orphan.
+`scale-up-or-scale-out-dichotomy` remains the deliberate orphan.
 
 **The apex meters read `0 / 0`, and that is the healthy state.** No paper takes a direct
 stance on either; they are reached only through the ladder. If an apex meter ever starts
@@ -100,10 +100,10 @@ reading as noise, that head wanted to be a topic.
 A **container of keywords** — nothing more. Full field spec in SCHEMA §9.
 
 ```yaml
-title: "Cancer mechanics"
-note: "Mechanics read into the malignant cascade..."
-broader: [disease-and-development]
-keywords: [cancer, invasion, metastasis, glioblastoma, ...]
+title: "Cloud deployments"
+note: "Performance read off multi-tenant, elastic infrastructure..."
+broader: [deployment-contexts]
+keywords: [cloud, serverless, autoscaling, edge-inference, ...]
 ```
 
 Three properties make it safe to add:
@@ -114,8 +114,8 @@ Three properties make it safe to add:
   design specified, and the ban on slice-level tags is untouched.
 - **It never enters the graph.** `broader` is confined to `topics/ → topics/`. A topic slug
   in any slice edge is a dangling ref and fails the build. The three-edge core is intact.
-- **Keywords are non-exclusive.** `glioblastoma` is in both `cancer` and `nervous-system`;
-  `three-dimensional` is in both `model-systems` and `extracellular-matrix`. A topic may
+- **Keywords are non-exclusive.** `edge-inference` is in both `cloud` and `embedded`;
+  `tiered-storage` is in both `testbeds` and `storage`. A topic may
   have several `broader` parents. This axis is a DAG on purpose.
 
 ## 4. The topic set as built
@@ -124,17 +124,17 @@ Four headings over fourteen keyword containers; all 92 tags filed, no dead keywo
 one of the 53 papers reachable. Three containers sit under two headings each.
 
 ```
-methods-and-measurement    force-measurement · perturbation-and-patterning ·
-                           model-systems* · modelling-and-simulation
-tissue-mechanics           material-state · stress-transmission · collective-migration ·
-                           active-matter · extracellular-matrix* · morphogenesis*
-cell-machinery             cytoskeleton · adhesion-and-mechanotransduction ·
-                           extracellular-matrix*
-disease-and-development    cancer · nervous-system · morphogenesis* · model-systems*
+methods-and-tooling        benchmarking · fault-injection ·
+                           testbeds* · modelling
+performance                saturation · backpressure · load-balancing ·
+                           concurrency · storage* · scheduling*
+system-internals           memory-hierarchy · admission-control ·
+                           storage*
+deployment-contexts        cloud · embedded · scheduling* · testbeds*
                                                               (* = two parents)
 ```
 
-**The tier-1 headings are navigation, not filters.** `tissue-mechanics` reaches 46 of 53
+**The tier-1 headings are navigation, not filters.** `performance` reaches 46 of 53
 papers, which is useless as a query and fine as a place to start drilling. The leaf
 containers are the filter that actually narrows (10–24 papers each). Worth knowing before
 anyone wires a UI that treats the two tiers alike.
@@ -460,9 +460,9 @@ scrolls to and flashes the real card. The hosting card states its other parents 
 `leads_to` keeps its **arrow** — those 3 surviving `gen` edges — because it is exactly the relation
 the boxes do not express.
 
-Two of the three (`division-injects-active-stress`, `topological-defects-are-force-sources`) have
+Two of the three (`retries-inject-load`, `hot-partitions-are-latency-sources`) have
 both parents under the same root, so they never leave their box. Only
-`vimentin-effect-is-context-dependent` genuinely straddles two families.
+`caching-effect-is-workload-dependent` genuinely straddles two families.
 
 **This is the number to watch.** One crossing in 45 is a rounding error and the reference row absorbs
 it. If cross-root parenting becomes common as the ladder grows, that is not a rendering problem to
@@ -475,13 +475,13 @@ is not a container, just the card it always was — a box around one fact is chr
 
 | Family | In the ladder | Nest depth |
 |---|---|---|
-| `tissue-behaviour-is-collective-mechanics` | 15 | 3 |
-| `mechanics-and-signalling-share-one-architecture` | 7 | 2 |
-| `cell-and-tissue-mechanical-measurement` *(method)* | 3 | 1 |
-| `computational-model-of-cell-mechanics` *(method)* | 3 | 1 |
-| `mechanical-response-is-context-dependent` | 1 (+1 ref) | 1 |
+| `pipeline-behaviour-is-collective-dynamics` | 15 | 3 |
+| `performance-and-control-share-one-substrate` | 7 | 2 |
+| `performance-benchmarking` *(method)* | 3 | 1 |
+| `queueing-simulation` *(method)* | 3 | 1 |
+| `tuning-effect-is-workload-dependent` | 1 (+1 ref) | 1 |
 
-plus `go-or-grow-dichotomy`, 3 broad questions and 7 loose broad methods standing alone. Families
+plus `scale-up-or-scale-out-dichotomy`, 3 broad questions and 7 loose broad methods standing alone. Families
 sort before singletons, biggest first — structure ahead of orphans.
 
 Hoisting survives with a **narrower job**: the *family* is what travels, not the rung. Pulling a rung
@@ -507,10 +507,10 @@ and scrolls to the rung itself when the rung is not the box's head.
   reading should surely not put the parent away.
 - **Whether the band should separate kinds.** Containers made this much less pressing without
   deciding it, which is why they did not decide it. The two broad-*method* ladders
-  (`cell-and-tissue-mechanical-measurement`, `computational-model-of-cell-mechanics`) are now their
+  (`performance-benchmarking`, `queueing-simulation`) are now their
   own boxes, so 6 of the 15 methods self-segregate for free — instrumentation gathers because it
   ladders, not because a rule sorted it. What is left interleaved is the **singletons**: 7 loose
-  methods and 3 broad questions standing beside `go-or-grow-dichotomy` at the bottom of one column.
+  methods and 3 broad questions standing beside `scale-up-or-scale-out-dichotomy` at the bottom of one column.
   Sorting the top level by kind would separate them, and it is a one-line change to `broadOrder`'s
   comparator — deliberately not taken, because it would make *kind* outrank *structure* in the
   standing order, and a reader looking for what the library claims should meet the biggest ladder

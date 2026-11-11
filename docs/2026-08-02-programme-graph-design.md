@@ -9,8 +9,8 @@ them. A grant application is then one **linearization** of the programme, not th
 
 Three decisions taken up front, and the design is bound by them:
 
-1. **Clean v2.** The graph starts at the stress/rheology framing. The v1 jamming/shape-index
-   proposal is not imported as a historical layer.
+1. **Clean v2.** The graph starts at the v2 framing of the proposal. The v1 framing is not
+   imported as a historical layer.
 2. **No prose.** The graph never generates proposal text. The weld runs text → graph, as a
    check; never graph → text.
 3. **No fork.** Programme node kinds live in `litgraph`, and the programme tree lives inside
@@ -42,7 +42,7 @@ Everything below is the smallest set of additions that fixes those five rows.
 | **Capability** | `k1`… | a thing that makes a Test possible — an instrument, a line, a pipeline, a collaborator's model | never; it grounds in the evidence that it exists (§8) |
 
 **Reused unchanged:** **Claim** (`c*`), **Question** (`q*`), **Method** (`m*`). A Method is still
-the *technique* (TFM, MSM, optoRhoA); a Test is a specific planned *use* of techniques to
+the *technique* (a microbenchmark, a trace replay, a queueing model); a Test is a specific planned *use* of techniques to
 separate two hypotheses. The distinction is the same one the lit model already draws between a
 method-use and the method ladder — same kind, different altitude — so it needs no new machinery.
 
@@ -55,9 +55,9 @@ method-use and the method ladder — same kind, different altitude — so it nee
   dependent set. No node.
 - **Mitigation** — a Test that discriminates the assumption. No node.
 
-Worked: *"vimentin and actomyosin are orthogonal"* is a claim, load-bearing (the two-knob phase
-diagram grounds in it), with no Test → the graph flags it. Adding the opto-clamp as a Test that
-`discriminates` it and its negation clears the flag. The caveat, the risk and the contingency
+Worked: *"the arrival rate is stationary over the controller's adaptation window"* is a claim,
+load-bearing (the adaptive controller grounds in it), with no Test → the graph flags it. Adding a
+shifting-load trace replay as a Test that `discriminates` it and its negation clears the flag. The caveat, the risk and the contingency
 that a proposal writes as three paragraphs are one claim and one edge.
 
 ---
@@ -82,7 +82,7 @@ enabled_by       Test → Capability                         the feasibility axi
 
 Unchanged and reused: `leads-to` (`grounded_in` ⟂ `leads_to`), `answers`, `corroborate` /
 `contradict`. A programme claim restating the literature grounds in a lit slice
-(`grounded_in: Fuhs2022NatPhys:c3`) — that is already the model's *borrowed* case, no new
+(`grounded_in: Chen2021Sys:c1`) — that is already the model's *borrowed* case, no new
 concept.
 
 ---
@@ -107,24 +107,24 @@ survives on its own merit, phrase that as programme content, discard the documen
 
 | Comment | Becomes |
 |---|---|
-| "Fig. 2B doesn't show rigidity" | nothing — a new figure, then it's spent |
-| "where could stably graded mechanics come from in vivo?" | a **Question** on the aim |
-| "the soft-cells-in-stiff-tumour paradox could be ECM, not cells" | a **rival Claim**, and a Test that `discriminates` it from ours |
-| "parameter count depends on ingredients, not on the model" | a **Claim**, grounded on its own merits |
+| "the latency figure doesn't show the plateau" | nothing — a new figure, then it's spent |
+| "how fast must the controller adapt in production?" | a **Question** on the aim |
+| "the gain could come from the cache warming, not from batching" | a **rival Claim**, and a Test that `discriminates` it from ours |
+| "the tuning cost depends on the workload, not on the controller" | a **Claim**, grounded on its own merits |
 
 Such questions carry no `quote` — nothing durable to weld to. SCHEMA §4 already permits this: a
 purely synthesized question has no verbatim anchor, and a reviewer's point adopted as your own
 open question is synthesized.
 
-**What this deliberately gives up:** "which of Aleksi's comments did I silently drop" is no
-longer answerable from the graph. That is a revision checklist, and it belongs wherever a
+**What this deliberately gives up:** "which of the reviewer's comments did I silently drop" is
+no longer answerable from the graph. That is a revision checklist, and it belongs wherever a
 revision round is tracked — not in the durable model.
 
 **The join.** Programme claims `leads_to` the **same** thin broad nodes the papers already use.
-The v2 central hypothesis ladders into `claims/tissue-material-state-is-emergent.yaml`, which
+The v2 central hypothesis ladders into `claims/system-performance-is-emergent.yaml`, which
 already has paper children. The programme therefore hangs off the literature graph at the broad
-layer rather than sitting beside it — and `claims/tissue-operates-at-jamming-criticality.yaml`,
-the v1 framework, becomes visibly a broad claim the programme no longer feeds. That is what
+layer rather than sitting beside it — and `claims/systems-run-at-the-saturation-knee.yaml`,
+which the v1 framing fed, becomes visibly a broad claim the programme no longer feeds. That is what
 "clean v2" looks like in the graph.
 
 ---
@@ -133,7 +133,7 @@ the v1 framework, becomes visibly a broad claim the programme no longer feeds. T
 
 `classify_ref` reads a ref's meaning off its **form**. Today: `c1` local · `Chen2021Sys`
 container (`^[A-Z][A-Za-z]*\d{4}[A-Za-z]`) · `foo-bar` broad slug · `X:c1` sharpened. A
-programme container named `fluid-solid-switch` would be indistinguishable from a broad slug.
+programme container named `adaptive-batching` would be indistinguishable from a broad slug.
 
 **One sigil resolves it:** a programme container is `@<slug>`, a sharpened programme slice is
 `@<slug>:t2`. One regex branch, no ambiguity with any existing form, and every downstream
@@ -142,10 +142,10 @@ consumer (validation, viewer, build) keeps reading meaning off the form.
 | form | refers to |
 |---|---|
 | `t1`, `k2`, `c3` | local slice in the same file |
-| `@fluid-solid-switch` | a programme container (wildcard — "some slice in here") |
-| `@fluid-solid-switch:c1` | a sharpened programme slice |
-| `Fuhs2022NatPhys:c3` | a literature slice (the citation join) |
-| `tissue-material-state-is-emergent` | a thin broad node, shared with the literature |
+| `@adaptive-batching` | a programme container (wildcard — "some slice in here") |
+| `@adaptive-batching:c1` | a sharpened programme slice |
+| `Chen2021Sys:c1` | a literature slice (the citation join) |
+| `system-performance-is-emergent` | a thin broad node, shared with the literature |
 
 ---
 
@@ -198,8 +198,8 @@ load-bearing missing from the text"*, in the checking direction only.
 | Field | Req | Notes |
 |---|---|---|
 | `id` | ✔ | `k1`… |
-| `text` | ✔ | e.g. "optoRhoA patterning of active stress" |
-| `grounded_in` | – | the evidence it **exists**: a published method (`Ruppel2023eLife:m1`), an ELN experiment, or a host-lab asset. **Empty ⇒ aspirational** (§8) |
+| `text` | ✔ | e.g. "production traffic replay at line rate" |
+| `grounded_in` | – | the evidence it **exists**: a published method (`Chen2021Sys:m1`), an ELN experiment, or a host-lab asset. **Empty ⇒ aspirational** (§8) |
 
 **Narrative** — `programme/narrative/<grant>.yaml`: `{section → [refs]}`, plus page budget. Pure
 ordering. It carries no edges and derives nothing; it exists so the two coverage questions above
@@ -221,7 +221,7 @@ Nothing below is an authored field.
 | **open** (question) | no claim `answers` it — the existing rule, unchanged |
 | **orphan** | a Test discriminating nothing; a Capability nothing is enabled_by; a claim with no dependents that answers no question **and that no Test discriminates** — a rival hypothesis has no dependents by design, and the test aimed at it is what makes it live |
 
-*Blast radius* is the query that justifies the build. For a pivot as sharp as jamming → stress
+*Blast radius* is the query that justifies the build. For a change of framing as sharp as v1 → v2
 it is not visible in prose, and it is the first thing a hostile reviewer finds.
 
 ---

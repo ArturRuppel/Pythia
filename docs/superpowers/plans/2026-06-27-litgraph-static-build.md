@@ -102,8 +102,8 @@ def test_classify_ref_forms():
     assert classify_ref("Liu2010Pnas") == "container"
     assert classify_ref("Ruppel2023eLife") == "container"
     assert classify_ref("Liu2010Pnas:c3") == "sharpened"
-    assert classify_ref("force-propagation-is-active") == "broad"
-    assert classify_ref("jamming") == "broad"
+    assert classify_ref("throughput-scales-with-batching") == "broad"
+    assert classify_ref("batching") == "broad"
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
@@ -1187,7 +1187,7 @@ git commit -m "feat(cli): add `lit build` subcommand"
 ## Task 12: End-to-end on real data + gitignore + docs
 
 **Files:**
-- Modify: data repo `.gitignore` (the standalone `~/Projects/literature_graph_database`)
+- Modify: data repo `.gitignore` (the standalone `~/Projects/Pythia-database`)
 - Modify: `CLAUDE.md` (tool list), `docs/2026-06-27-litgraph-static-build-design.md` (mark built)
 
 - [ ] **Step 1: Build the real data repo and eyeball it**
@@ -1195,7 +1195,7 @@ git commit -m "feat(cli): add `lit build` subcommand"
 Run:
 ```bash
 cd tools/lit && pip install -e . >/dev/null 2>&1; cd ../..
-lit build --root ~/Projects/literature_graph_database --out ~/Projects/literature_graph_database/dist
+lit build --root ~/Projects/Pythia-database --out ~/Projects/Pythia-database/dist
 ```
 Expected: `built 417 papers -> .../dist/index.html` (7 curated + ~410 stubs; count may differ).
 
@@ -1205,7 +1205,7 @@ Expected: `built 417 papers -> .../dist/index.html` (7 curated + ~410 stubs; cou
 > broad file, or correct the ref) — it is not a code bug — then re-run. Report it to the human
 > rather than weakening validation.
 
-Open `~/Projects/literature_graph_database/dist/index.html` in a browser. Verify: the landing
+Open `~/Projects/Pythia-database/dist/index.html` in a browser. Verify: the landing
 list ranks the 7 curated papers above the stubs; clicking `Ruppel2023eLife` fans grounds left +
 the synthesis band right with edges; expanding it shows slices in their emergent colors; hover
 shows metadata (no abstract); no console errors.
@@ -1219,7 +1219,7 @@ the signal to add tier-B citation-wall collapse in a follow-up. Do not implement
 
 Run:
 ```bash
-cd ~/Projects/literature_graph_database
+cd ~/Projects/Pythia-database
 grep -qxF "dist/" .gitignore 2>/dev/null || echo "dist/" >> .gitignore
 git add .gitignore && git commit -m "chore: ignore dist/ (lit build artifact)"
 cd -

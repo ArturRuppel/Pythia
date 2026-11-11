@@ -13,7 +13,7 @@ unfolded onto the exact slice the edge points at**. Each of those was defensible
 the four together were not.
 
 Measured on the real library — one click on the first card in the landing column
-(`Kayal2026AnnuRevCondensMatterPhys`, 69 slices):
+(a review paper with 69 slices):
 
 | | before | after |
 |---|---|---|
@@ -31,9 +31,9 @@ is 3% of it.
 two folded rows underneath it, each saying what is behind it:
 
 ```
-◕ Kayal2026AnnuRevCondensMatterPhys   review   [tags]        2026
-  The Rheology of Living Tissues: From Cells to Organismal Mechanics
-  Kayal, Sayantani · Nguyen, Anh Q. · Bi, Dapeng
+◕ Nakamura2024Surv   review   [tags]        2024
+  Stream Processing Performance: From Operators to Pipelines
+  Nakamura, Ren · Osei, Kofi · Lindqvist, Maja
   ▸ ABSTRACT
   ▸ 69 SLICES · 50 EDGES
 ```
@@ -90,8 +90,8 @@ This reverses "opening each source on the exact cited finding is the whole payof
 it took from them without a click." That reads well for one source. It does not survive twelve:
 the grounds column came up as a wall of open cards, each with its own title, byline, abstract and
 20-odd slice rows, and finding any one paper in it meant scrolling past the rest. The concession
-had already been made once, for programme containers (the CNRS introduction grounds 37 sentences
-in 54 curated papers), where it was written down as a special case for aims and narratives. It is
+had already been made once, for programme containers (a grant narrative's introduction can ground
+dozens of sentences in dozens of papers), where it was written down as a special case for aims and narratives. It is
 the general rule now, which deletes the special case rather than adding to it.
 
 Nothing is lost by waiting, because the edge layer was already built for this: the arrow anchors

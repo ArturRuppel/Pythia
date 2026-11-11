@@ -132,9 +132,9 @@ The readout that falls out is the reason to build this view at all:
 > **A big empty ring is the next paper to curate** — many curated papers ground in it, nobody
 > has read it.
 
-It works today. The top grounding targets are `Park2015NatMater` (9), `Angelini2011Pnas` (9),
-`Bi2015NatPhys` (8) — all curated, all full disks, the jamming canon correctly identified as
-load-bearing. The top *uncurated* target is `Sadati2013Differentiation` at in-degree 5. That is
+It works today. The top grounding targets are three curated papers at in-degree 9, 9 and 8 — all full disks,
+the field's canon correctly identified as load-bearing. The top *uncurated* target is a stub at
+in-degree 5. That is
 the view's first answer, and it is a real one. **Ship-test: the prototype must surface it
 without being asked.**
 
@@ -196,13 +196,13 @@ has two independent authored dimensions and deserves both.
 | **within a shell** | force-packed to avoid overlap | **meaningless by construction, and labelled so** |
 
 Shell area grows as r², which matches the data: 3 nodes at the top tier, 112 floors at the
-bottom. The one broad node with two top-level ancestors (`vimentin-effect-is-context-dependent`)
+bottom. The one broad node with two top-level ancestors (`caching-effect-is-workload-dependent`)
 sits at the normalized midpoint of its parents' directions.
 
 The **16 top-level entries** are 9 broad methods, 4 broad claims and 3 broad questions. The 4
-claims are `tissue-behaviour-is-collective-mechanics` and
-`mechanics-and-signalling-share-one-architecture` (the two apexes of 2026-08-03 §2), plus
-`mechanical-response-is-context-dependent` and the deliberate orphan `go-or-grow-dichotomy`.
+claims are `pipeline-behaviour-is-collective-dynamics` and
+`performance-and-control-share-one-substrate` (the two apexes of 2026-08-03 §2), plus
+`tuning-effect-is-workload-dependent` and the deliberate orphan `scale-up-or-scale-out-dichotomy`.
 *(An earlier draft of this section said "2 apexes + 4 roots", which reads as six nodes; it is
 four, two of which are the apexes.)*
 

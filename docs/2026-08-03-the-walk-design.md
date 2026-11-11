@@ -25,15 +25,16 @@ remains the landing view.
 
 ## 1. The diagnosis — measured, not felt
 
-Taken from the real `dist/graph.json` (53 curated papers, 532 slices, 3766 stubs,
-42 broad slices, 18 topics):
+Taken from the real `dist/graph.json` (a few dozen curated papers, some hundreds of slices,
+thousands of stubs, a few dozen broad slices). The four most matured papers are shown as
+hubs A–D:
 
 | focus | board spawns | board draws |
 |---|---|---|
-| `Hohmann2022Cellsa` | 57 cards | 88 edges |
-| `Ruppel2023eLife` | 51 cards | 71 edges |
-| `Tambe2011NatMater` | 50 cards | 71 edges |
-| `Ruppel2026NatPhys` | 44 cards | 74 edges |
+| hub A | 57 cards | 88 edges |
+| hub B | 51 cards | 71 edges |
+| hub C | 50 cards | 71 edges |
+| hub D | 44 cards | 74 edges |
 | **median paper** | **4 cards** | — |
 
 Three things follow.
@@ -50,7 +51,7 @@ Each has a different natural layout. Superimposed, none of them is readable. We 
 looking at a messy graph — we are looking at five graphs on one sheet of paper.
 
 **Stance has no layout home, by design.** The 2026-06-25 doc says `corroborate` /
-`contradict` draw "at wherever they already sit." `Guillamat2026Science` has 19.
+`contradict` draw "at wherever they already sit." One curated paper has 19.
 Those are the strokes that cross the whole board, because they connect cards whose
 column positions are unrelated to each other.
 
@@ -66,10 +67,10 @@ Same focus as the table above, in the walk (depth 2, sibling cap 7):
 
 | focus | grounds | builds | gen | answers | stance | *board* |
 |---|---|---|---|---|---|---|
-| `Hohmann2022Cellsa` | 4 | 4 | 15 | 16 | 16 | *58c / 89e* |
-| `Ruppel2023eLife` | 4 | 4 | 15 | 8 | 2 | *51c / 71e* |
-| `Tambe2011NatMater` | 1 | 4 | 15 | 6 | 0 | *50c / 71e* |
-| `Ruppel2026NatPhys` | 1 | 1 | 10 | 9 | 10 | *44c / 74e* |
+| hub A | 4 | 4 | 15 | 16 | 16 | *58c / 89e* |
+| hub B | 4 | 4 | 15 | 8 | 2 | *51c / 71e* |
+| hub C | 1 | 4 | 15 | 6 | 0 | *50c / 71e* |
+| hub D | 1 | 1 | 10 | 9 | 10 | *44c / 74e* |
 
 Every relation, on every hub, stays inside one screen. (Measured against the shipped
 viewer, not the mockup — hence the small drift from §1, which predates the `builds` fix
@@ -102,9 +103,9 @@ what the board would have drawn instead.
 
 The four rules above are about relations, and that was the hole. **Every tab was a relation,
 so a slice only existed if it participated in one** — and a claim you have written but not yet
-wired participates in none. Measured on the real library: **117 of 532 slices (22%) were
+wired participates in none. Measured on the real library: **about a fifth of all slices (22%) were
 unreachable from their own paper at any depth on any tab**, concentrated in the papers under
-active curation (`Ruppel2026NatPhys` hid 10 of 31). The board never had this problem — expanding
+active curation (hub D hid 10 of 31). The board never had this problem — expanding
 a card lists its slice rows — so the walk had introduced a regression precisely in the "let me
 check what I wrote" motion.
 
@@ -118,7 +119,7 @@ a paper *is* (CONCEPT: a container of slices), not something you follow. Consequ
   its weld quote (which drives the PDF, as everywhere else).
 - **Unwired is a first-class state.** A slice no edge touches is flagged, and filterable on its
   own. That is not an error — it is the curation frontier *inside* a paper, and it was invisible
-  before. **64 of 532** today.
+  before. **About one slice in eight** today.
 - **A paper opens here**, which also settles the first §5 question below: not the ladder, not
   `grounds` — its own contents.
 

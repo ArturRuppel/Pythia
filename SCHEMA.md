@@ -399,8 +399,8 @@ in the keywords of any topic beneath it through `broader`. Nothing is written on
 topic. This is what keeps topics from becoming hand-authored emergent state, the thing the
 tags design refused when it banned slice-level tags.
 
-Keywords are non-exclusive. The same keyword may belong to several topics, as `glioblastoma`
-is both cancer and nervous-system, and a topic may have several `broader` parents. The topic
+Keywords are non-exclusive. The same keyword may belong to several topics, as `edge-inference`
+is both cloud and embedded, and a topic may have several `broader` parents. The topic
 axis is deliberately a DAG, not a tree.
 
 ### Validation
