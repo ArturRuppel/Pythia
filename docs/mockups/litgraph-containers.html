@@ -99,23 +99,17 @@ function el(c,h){const d=document.createElement('div');d.className=c;if(h!=null)
 function place(id,n,x,y,inP){n.style.left=x+'px';n.style.top=y+'px';world.appendChild(n);nodes[id]={el:n,x,y,inP:!!inP};drag(id);}
 
 // ---- the four sub-containers of P (collapsed by default) ----
+// synthetic data: example/curated/Chen2021Sys.yaml (fully fictional)
 const METHODS=[
- ['m1','optogenetic RhoA activation','fl','2 src'],['m2','traction force microscopy','fl','2 src'],
- ['m4','H-pattern micropatterning','fl','2 src'],['m3','monolayer stress microscopy','md','m2 +2'],
- ['m6','contour / tension model','md','m2 +2'],['m5','continuum (active-gel) model','md','m3 +1'],
+ ['m1','microbenchmark harness','fl','1 src'],['m2','open-network queueing model','md','m1 +1'],
 ];
 const FINDINGS=[
- ['c1','Receiver responds actively → doublet is one coherent unit','gr','m1·m3·m5'],
- ['c2','Propagation amplified ⊥ to polarization axis (Poisson-like)','gr','m3·m5'],
- ['c3','Active response → effective, emergent elasticity','gr','c1·m5'],
+ ['c1','Aggregate throughput rises with batch size','gr','m1'],
+ ['c2','Per-record latency rises with batch size','gr','m1'],
+ ['c3','Queueing model predicts a throughput plateau above a critical batch size','gr','c1·m2'],
 ];
 const CONTEXT=[
- ['c4','Force lets cells probe environment mechanics/geometry','bo','12 src'],
- ['c5','Contractile force universal via non-muscle myosin II','bo','1 src'],
- ['c6','Long-ranged propagation essential for morphogenesis','bo','4 src'],
- ['c7','Passive medium attenuates; active processes restore signal','bo','1 src'],
- ['c8','Epithelial waves require active cellular behaviors','bo','5 src'],
- ['c9','Stress fibers nematic → anisotropic stress propagation','bo','1 src'],
+ ['b1','Memory bandwidth sets the latency floor of a pipeline','bo','1 src'],
 ];
 
 function container(id,cls,title,count,rows,nested){
@@ -137,16 +131,16 @@ function broad(id,cls,kd,t,x,y){
 
 function layout(){
   // broad row (above P)
-  broad('FPA','','claim','Force propagation across tissues is active',360,70);
-  broad('STA','','claim','Stress transmits ⊥ to the polarization axis',640,70);
-  broad('FPT','qb','question','Passive or actively sustained — how far?',915,70);
+  broad('FPA','','claim','Throughput scales with batch size',360,70);
+  broad('STA','','claim','Buffering has costs',640,70);
+  broad('FPT','qb','question','How should resources be scheduled under shifting load?',915,70);
   // sub-containers, inside P
-  place('methods', container('methods','methods','Methods','6 · floors + models',METHODS), 300,560,true);
+  place('methods', container('methods','methods','Methods','2 · floor + model',METHODS), 300,560,true);
   place('findings',container('findings','findings','Findings','3 · grounded',FINDINGS), 300,360,true);
-  place('context', container('context','context','Context','6 · borrowed',CONTEXT), 640,360,true);
-  const q2nest='<div class="nest"><div class="nl">q2 · nested (open)</div>What is E-cadherin\'s role in the active coupling? (molecular machinery)</div>';
-  place('qcont', container('qcont','qcont','q1 — force propagation route','answered · q2 nested',
-        [['q1','How does force propagate sender → junction → receiver?','gr','']], q2nest), 915,330,true);
+  place('context', container('context','context','Context','1 · borrowed',CONTEXT), 640,360,true);
+  const q2nest='<div class="nest"><div class="nl">oq1 · nested (open)</div>Does throughput saturate at large batch sizes?</div>';
+  place('qcont', container('qcont','qcont','q1 — the latency floor','answered · oq1 nested',
+        [['q1','What sets the latency floor of a pipeline?','gr','']], q2nest), 915,330,true);
   // aggregate leads-to edges (container level)
   edges.push({f:'methods',t:'findings',k:'g'});
   edges.push({f:'findings',t:'FPA',k:'g'},{f:'findings',t:'STA',k:'g'});
@@ -167,7 +161,7 @@ function updateP(){
   pbox.style.left=(x0-pad)+'px';pbox.style.top=(y0-pad)+'px';
   pbox.style.width=(x1-x0+2*pad)+'px';pbox.style.height=(y1-y0+2*pad)+'px';
   plabel.style.left=(x0-pad+14)+'px';plabel.style.top=(y0-pad-9)+'px';
-  plabel.textContent='P · Ruppel2023eLife';
+  plabel.textContent='P · Chen2021Sys';
 }
 
 // ---- edges ----

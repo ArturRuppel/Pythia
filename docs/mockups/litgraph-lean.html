@@ -96,80 +96,40 @@
 <div id="zc"><button id="zo">–</button><button id="zi">+</button><button id="zf">⊙</button></div>
 
 <script>
+// Synthetic data: the focus paper is example/curated/Chen2021Sys.yaml (fully fictional),
+// with its cited containers from example/stubs.yaml.
 const STUBS={
- Liu2010Pnas:{t:"Mechanical tugging force regulates the size of cell–cell junctions",y:2010},
- Hino2020DevCell:{t:"ERK-Mediated Mechanochemical Waves Direct Collective Cell Polarization",y:2020},
- Valon2017NatCommun:{t:"Optogenetic control of cellular forces and mechanotransduction",y:2017},
- Oakes2017NatCommun:{t:"Optogenetic control of RhoA reveals zyxin-mediated elasticity of stress fibres",y:2017},
- Sabass2007BiophysJ:{t:"High Resolution Traction Force Microscopy…",y:2007},
- Bauer2021PloComputBiology:{t:"pyTFM: A tool for traction force and monolayer stress microscopy",y:2021},
- Tambe2011NatMater:{t:"Collective cell guidance by cooperative intercellular forces",y:2011},
- Tseng2012Pnas:{t:"Spatial organization of the ECM regulates cell–cell junction positioning",y:2012},
- Vignaud2014Methodcellbiology:{t:"Polyacrylamide Hydrogel Micropatterning",y:2014},
- Prost2015NatPhys:{t:"Active gel physics",y:2015},
- Bischofs2008BiophysJ:{t:"Filamentous Network Mechanics and Active Contractility Determine Cell and Tissue Shape",y:2008},
- Giomi2019Advexpmedbiology:{t:"Contour Models of Cellular Adhesion",y:2019},
- Discher2005Science:{t:"Tissue Cells Feel and Respond to the Stiffness of Their Substrate",y:2005},
- Luciano2021NatPhys:{t:"Cell monolayers sense curvature by exploiting active mechanics…",y:2021},
- Engler2006Cell:{t:"Matrix Elasticity Directs Stem Cell Lineage Specification",y:2006},
- McBeath2004DevCell:{t:"Cell Shape, Cytoskeletal Tension, and RhoA Regulate Stem Cell Lineage Commitment",y:2004},
- Wen2014NatMater:{t:"Interplay of matrix stiffness and protein tethering in stem cell differentiation",y:2014},
- Kilian2010Pnas:{t:"Geometric cues for directing the differentiation of mesenchymal stem cells",y:2010},
- Chen1997Science:{t:"Geometric Control of Cell Life and Death",y:1997},
- Thery2005NatCellBiology:{t:"The extracellular matrix guides the orientation of the cell division axis",y:2005},
- Nelson2005Pnas:{t:"Emergent patterns of growth controlled by multicellular form and mechanics",y:2005},
- Pathak2012Pnas:{t:"Independent regulation of tumor cell migration by matrix stiffness and confinement",y:2012},
- Sunyer2020CurrBiology:{t:"Durotaxis",y:2020},
- Shellard2021Nature:{t:"Collective durotaxis along a self-generated stiffness gradient in vivo",y:2021},
- VicenteManzanares2009NatRevMolCellBiology:{t:"Non-muscle myosin II takes centre stage in cell adhesion and migration",y:2009},
- Ho2019PloBiology:{t:"Feather arrays are patterned by interacting signalling and cell density waves",y:2019},
- Desprat2008DevCell:{t:"Tissue Deformation Modulates Twist Expression… in Drosophila Embryos",y:2008},
- Barriga2018Nature:{t:"Tissue stiffening coordinates morphogenesis by triggering collective cell migration in vivo",y:2018},
- McGinn2021NatCellBiology:{t:"A biomechanical switch regulates the transition towards homeostasis…",y:2021},
- Kholodenko2010NatRevMolCellBiology:{t:"Signalling ballet in space and time",y:2010},
- DiTalia2022AnnuRevBiophys:{t:"Waves in Embryonic Development",y:2022},
- SerraPicamal2012NatPhys:{t:"Mechanical waves during tissue expansion",y:2012},
- Peyret2019BiophysJ:{t:"Sustained Oscillations of Epithelial Cell Sheets",y:2019},
- Petrolli2019PhysRevLett:{t:"Confinement-Induced Transition between Wavelike Collective Cell Migration Modes",y:2019},
- Ng2014eLife:{t:"Mapping the dynamics of force transduction at cell–cell junctions of epithelial clusters",y:2014},
- MaroudasSacks2020NatPhys:{t:"Topological defects in the nematic order of actin fibres…",y:2020},
+ Bench2016Tools:{t:"A reproducible harness for streaming microbenchmarks",y:2016},
+ Lopez2019Arch:{t:"A cost model for buffer sizing",y:2019},
+ Rao2018Osdi:{t:"Throughput characterization of dataflow engines",y:2018},
+ West2015Sigmod:{t:"Unbounded throughput scaling in partitioned pipelines",y:2015},
+ Patel2017Vldb:{t:"Memory bandwidth limits in analytical pipelines",y:2017},
 };
 const AB={
- Liu2010Pnas:"Actomyosin contractility affects cellular organization within tissues in part through the generation of mechanical forces at sites of cell-matrix and cell-cell contact… direct application of mechanical tugging force was sufficient to trigger AJ growth.",
- Sabass2007BiophysJ:"", Bauer2021PloComputBiology:"",
- Ng2014eLife:"Force transduction at cell–cell adhesions regulates tissue development… basal force fluctuations were coupled to E-cadherin localization at the level of individual cell–cell junctions.",
- DiTalia2022AnnuRevBiophys:"Embryonic development hinges on effective coordination of molecular events across space and time. Waves have recently emerged as an ubiquitous mechanism that ensures rapid spreading of regulatory signals across embryos…",
- Discher2005Science:"Normal tissue cells are anchorage dependent… an understanding of how tissue cells sense matrix stiffness is just emerging with quantitative studies of cells adhering to gels with tunable elasticity.",
- Petrolli2019PhysRevLett:"…long-range mechanical excitations (waves) at the supracellular level. We confine epithelial monolayers to quasi-1D geometries to force tissue-level waves of well-defined wavelength and period.",
+ Bench2016Tools:"", Lopez2019Arch:"",
+ Rao2018Osdi:"We characterize throughput across dataflow engines under batched and unbatched ingestion…",
+ Patel2017Vldb:"Bandwidth-bound stages dominate the latency floor of analytical pipelines…",
 };
-// slices of the focus paper (Ruppel2023eLife)
+// slices of the focus paper (Chen2021Sys)
 const METHODS=[
- {id:'m1',t:'optogenetic RhoA activation',cls:'floor',g:['Valon2017NatCommun','Oakes2017NatCommun']},
- {id:'m2',t:'traction force microscopy',cls:'floor',g:['Sabass2007BiophysJ','Bauer2021PloComputBiology']},
- {id:'m4',t:'H-pattern micropatterning',cls:'floor',g:['Tseng2012Pnas','Vignaud2014Methodcellbiology']},
- {id:'m3',t:'monolayer stress microscopy',cls:'model',g:['m2','Tambe2011NatMater','Bauer2021PloComputBiology']},
- {id:'m6',t:'contour / tension model',cls:'model',g:['m2','Bischofs2008BiophysJ','Giomi2019Advexpmedbiology']},
- {id:'m5',t:'continuum (active-gel) model',cls:'model',g:['m3','Prost2015NatPhys']},
+ {id:'m1',t:'microbenchmark harness',cls:'floor',g:['Bench2016Tools']},
+ {id:'m2',t:'open-network queueing model',cls:'model',g:['m1','Lopez2019Arch']},
 ];
 const CLAIMS=[
- {id:'c1',cls:'grounded',t:'Receiver responds actively → doublet is one coherent unit',g:['m1','m3','m5'],up:['force-propagation-is-active'],ans:['q1'],corr:['Liu2010Pnas','Hino2020DevCell']},
- {id:'c2',cls:'grounded',t:'Propagation amplified ⊥ to polarization axis (Poisson-like)',g:['m3','m5'],up:['stress-transmission-anisotropic']},
- {id:'c3',cls:'grounded',t:'Active response → effective, emergent elasticity',g:['c1','m5'],up:[]},
- {id:'c4',cls:'borrowed',t:'Force lets cells probe environment mechanics/geometry',g:['Discher2005Science','Luciano2021NatPhys','Engler2006Cell','McBeath2004DevCell','Wen2014NatMater','Kilian2010Pnas','Chen1997Science','Thery2005NatCellBiology','Nelson2005Pnas','Pathak2012Pnas','Sunyer2020CurrBiology','Shellard2021Nature']},
- {id:'c5',cls:'borrowed',t:'Contractile force universal via non-muscle myosin II',g:['VicenteManzanares2009NatRevMolCellBiology']},
- {id:'c6',cls:'borrowed',t:'Long-ranged propagation essential for morphogenesis',g:['Ho2019PloBiology','Desprat2008DevCell','Barriga2018Nature','McGinn2021NatCellBiology']},
- {id:'c7',cls:'borrowed',t:'Passive medium attenuates; active processes restore signal',g:['Kholodenko2010NatRevMolCellBiology'],up:['force-propagation-is-active']},
- {id:'c8',cls:'borrowed',t:'Epithelial waves require active cellular behaviors',g:['DiTalia2022AnnuRevBiophys','SerraPicamal2012NatPhys','Peyret2019BiophysJ','Petrolli2019PhysRevLett','Ng2014eLife'],up:['force-propagation-is-active']},
- {id:'c9',cls:'borrowed',t:'Stress fibers nematic → anisotropic stress propagation',g:['MaroudasSacks2020NatPhys'],up:['stress-transmission-anisotropic']},
+ {id:'c1',cls:'grounded',t:'Aggregate throughput rises with batch size',g:['m1'],up:['throughput-scales-with-batching'],corr:['Rao2018Osdi']},
+ {id:'c2',cls:'grounded',t:'Per-record latency rises with batch size',g:['m1'],up:['batching-adds-latency']},
+ {id:'c3',cls:'grounded',t:'The queueing model predicts a throughput plateau above a critical batch size',g:['c1','m2'],up:[],corr:['West2015Sigmod']},
+ {id:'b1',cls:'borrowed',t:'Memory bandwidth sets the latency floor of a pipeline',g:['Patel2017Vldb'],up:['buffering-has-costs'],ans:['q1']},
 ];
 const QS=[
- {id:'q1',t:'How does force propagate sender → junction → receiver?',up:['force-propagation-in-tissues'],ans:true},
- {id:'q2',t:"What is E-cadherin's role in the active coupling? (molecular)",up:['force-propagation-in-tissues'],ans:false},
+ {id:'q1',t:'What sets the latency floor of a pipeline?',up:[],ans:true},
+ {id:'oq1',t:'Does throughput saturate at large batch sizes?',up:['q-resource-scheduling'],ans:false},
 ];
 const BROAD={
- 'force-propagation-is-active':{kd:'claim',t:'Force propagation across tissues is active'},
- 'stress-transmission-anisotropic':{kd:'claim',t:'Stress transmits ⊥ to the polarization axis'},
- 'force-propagation-in-tissues':{kd:'question',t:'Passive or actively sustained — and how far?'},
+ 'throughput-scales-with-batching':{kd:'claim',t:'Throughput scales with batch size'},
+ 'batching-adds-latency':{kd:'claim',t:'Batching adds per-record latency'},
+ 'buffering-has-costs':{kd:'claim',t:'Buffering has costs'},
+ 'q-resource-scheduling':{kd:'question',t:'How should resources be scheduled under shifting load?'},
 };
 
 const world=document.getElementById('world'),svg=document.getElementById('edges'),
@@ -221,14 +181,12 @@ function hidePop(){pop.style.display='none';}
 function spread(n,gap,cx){return i=>cx+(i-(n-1)/2)*gap;}
 function layout(){
   const CX=520;
-  // broad (top)
-  const bx=spread(2,360,CX);
-  Object.keys(BROAD).forEach((k,i)=>{
-    if(BROAD[k].kd==='question') return;
-  });
-  slice('force-propagation-is-active','broad','<div class="kd">claim</div>'+BROAD['force-propagation-is-active'].t,bx(0),60);
-  slice('stress-transmission-anisotropic','broad','<div class="kd">claim</div>'+BROAD['stress-transmission-anisotropic'].t,bx(1),60);
-  slice('force-propagation-in-tissues','broad qb','<div class="kd">question</div>'+BROAD['force-propagation-in-tissues'].t,CX+560,60);
+  // broad (top): claims spread across, broad questions above the question column
+  const bclaims=Object.keys(BROAD).filter(k=>BROAD[k].kd==='claim');
+  const bx=spread(bclaims.length,300,CX);
+  bclaims.forEach((k,i)=>slice(k,'broad','<div class="kd">claim</div>'+BROAD[k].t,bx(i),60));
+  Object.keys(BROAD).filter(k=>BROAD[k].kd==='question').forEach((k,i)=>
+    slice(k,'broad qb','<div class="kd">question</div>'+BROAD[k].t,CX+560,60+i*90));
   // questions (upper right)
   const qx=CX+560;
   QS.forEach((q,i)=>{
@@ -273,7 +231,7 @@ function buildMethod(m,x,y){
   if(cites.length) chips.appendChild(stubChip(m.id,cites));
 }
 // a ref is a slice (resolvable to a node id) if it matches m*/c*; else it's a citation (stub)
-function nodesPending(r){return /^(m\d|c\d)$/.test(r);}
+function nodesPending(r){return /^(m\d|c\d|b\d)$/.test(r);}
 
 // ---- edges ----
 const COL={leadsto:'#5b6b82',answers:'#9aa7b4',lateral:'#f0883e'};
