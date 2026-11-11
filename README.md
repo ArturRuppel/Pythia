@@ -117,6 +117,18 @@ Everything runs through the `lit` CLI.
   lit collection list                                         # or: lit collection show <slug>
   ```
 
+- **`lit map`**: read the broad layer (`claims/`, `questions/`, `methods/`)
+  and what hangs on it in the terminal, without the viewer or graph.json. Every
+  mode takes `--json` for an agent, and `--tag` / `--topic` to work one area.
+
+  ```bash
+  lit map                                  # the ladder: papers + slices beneath each node
+  lit map throughput-scales-with-batching  # one node: its papers, slices, contradictions
+  lit map Lopez2019Arch                    # one paper: which broad nodes each slice reaches
+  lit map --off                            # papers with nothing on the map, and totals
+  lit map --find latency floor             # a phrase -> the nearest part of the map
+  ```
+
 Smaller commands round out the loop: `lit enrich` and `lit abstracts` backfill
 stub metadata and abstracts onto papers ingested before those fields existed,
 `lit tag` edits a paper's tags, `lit topics` reports the topic axis (including

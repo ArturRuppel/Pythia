@@ -109,6 +109,14 @@ manual. Viewer behaviour is specified in [docs/](docs/) — see the design index
   matters: unfiled tags, dead keywords and stranded papers — the three signals that stop
   the layer rotting behind the tagging. `--strict` exits non-zero for CI. Run it after a
   tagging session.
+- **`lit map`** — read back the broad layer and what hangs on it: the ladder with papers and
+  slices beneath each node (`lit map`), one node's papers and contradictions (`<slug>`), one
+  paper's reach (`<Citekey>`, `<Citekey>:<id>`), the curated papers off the map (`--off`), and
+  a phrase finder (`--find`); `--json`, `--tag`, `--topic` on all. **One definition carries
+  every count: a slice is on the map iff it reaches a broad node by `leads_to` — through any
+  same-paper ladder — or, for a claim, by `answers` naming a broad question.** A claim that
+  answers a paper question gathered under a broad one is listed, not counted. Read-only,
+  derived from the loaded graph alone (no PDF or quote checks), so it runs in seconds.
 - **`lit collection`** — `new "<title>"` · `add <slug> <citekey|doi>…` · `remove` · `list` ·
   `show` (SCHEMA §10). **`add` by DOI works for a paper not yet in the library**: it mints the
   `stubs.yaml` entry from OpenAlex/Crossref (ingest's citekey rules and merge), then adds it.

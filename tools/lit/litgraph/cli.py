@@ -202,6 +202,70 @@ def _collection(args) -> int:
         return 1
 
 
+def _map(args) -> int:
+    """`lit map` — read-only, derived from the loaded graph alone (no PDF / quote checks)."""
+    import json
+    from . import broadmap as bm
+    from .topics import papers_in
+    cfg = load_config(args.root)
+    try:
+        graph = build_graph(cfg.root)
+    except BuildError as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 1
+
+    only: set[str] | None = None
+    scope = ""
+    if args.tag:
+        t = args.tag.lower()
+        only = {ck for ck, p in graph.papers.items()
+                if p.curated and t in {x.lower() for x in p.tags}}
+        scope += f" [tag {args.tag}]"
+    if args.topic:
+        if args.topic not in graph.topics:
+            print(f"error: no such topic: {args.topic}", file=sys.stderr)
+            return 2
+        hits = set(papers_in(graph.topics, args.topic, graph.papers))
+        only = hits if only is None else only & hits
+        scope += f" [topic {args.topic}]"
+    ix = bm.build_index(graph, only)
+
+    def emit(data, text: str) -> int:
+        if args.json:
+            if scope:
+                data = {"scope": {"tag": args.tag, "topic": args.topic}, **data}
+            print(json.dumps(data, indent=1, ensure_ascii=False))
+        else:
+            print(text, end="")
+        return 0
+
+    if args.off:
+        return emit(bm.off_report(ix), bm.format_off(ix, scope))
+    if args.find:
+        return emit(bm.find(ix, args.find), bm.format_find(ix, args.find, args.limit))
+    ref = args.ref
+    if not ref:
+        return emit(bm.tree(ix), (f"scope:{scope}\n" if scope else "") + bm.format_tree(ix))
+    if ref in graph.broad:
+        return emit(bm.node_detail(ix, ref), bm.format_node(ix, ref))
+    key, _, sid = ref.partition(":")
+    p = graph.papers.get(key)
+    if p is not None and not p.curated:
+        print(f"error: {key} is a stub (not curated) — it has no slices to place", file=sys.stderr)
+        return 2
+    if p is not None and key not in ix.papers:
+        print(f"error: {key} is outside the{scope} scope", file=sys.stderr)
+        return 2
+    if p is not None:
+        if sid and sid not in {s.id for s in p.slices}:
+            print(f"error: {key} has no slice {sid!r}", file=sys.stderr)
+            return 2
+        return emit(bm.paper_detail(ix, key, sid or None), bm.format_paper(ix, key, sid or None))
+    print(f"error: {ref!r} is neither a broad slug nor a curated citekey "
+          f"(try: lit map --find <words>)", file=sys.stderr)
+    return 2
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="lit", description="literature_graph tools")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -327,6 +391,29 @@ def main(argv: list[str] | None = None) -> int:
     p_prog.add_argument("--root", default=".", help="data root (programme/, curated/, ...)")
     p_prog.add_argument("--strict", action="store_true",
                         help="exit non-zero if anything is flagged (for CI)")
+
+    p_map = sub.add_parser("map", help="read back the broad layer (claims/, questions/, methods/) "
+                                       "and what hangs on it: the ladder, one node's papers, one "
+                                       "paper's reach, what is off the map, a phrase finder")
+    p_map.add_argument("ref", nargs="?",
+                       help="a broad slug (that node and its papers), a curated <Citekey> (which "
+                            "broad nodes its slices reach), or <Citekey>:<id> (one slice); omit "
+                            "for the whole ladder")
+    m_mode = p_map.add_mutually_exclusive_group()
+    m_mode.add_argument("--off", action="store_true",
+                        help="curated papers with no slice on the map (by pass), papers only "
+                             "partly on it, and attached/total totals")
+    m_mode.add_argument("--find", nargs="+", metavar="WORD",
+                        help="case-insensitive match (every word): broad nodes first, then "
+                             "paper slice texts")
+    p_map.add_argument("--tag", default=None,
+                       help="consider only curated papers carrying this tag")
+    p_map.add_argument("--topic", default=None,
+                       help="consider only curated papers this topic reaches (SCHEMA §9)")
+    p_map.add_argument("--limit", type=int, default=40,
+                       help="--find: paper slices listed in text mode (default 40; --json lists all)")
+    p_map.add_argument("--json", action="store_true", help="machine-readable output, stable keys")
+    p_map.add_argument("--root", default=".", help="data root (claims/, questions/, methods/, curated/)")
 
     p_cur = sub.add_parser("curate", help="move a paper into (or out of) the in-progress worklist "
                                           "(`[curation] active` in config.toml)")
@@ -562,6 +649,9 @@ def main(argv: list[str] | None = None) -> int:
         rep = programme_report(graph)
         print(format_report(rep))
         return 1 if (args.strict and not rep.clean) else 0
+
+    if args.command == "map":
+        return _map(args)
 
     if args.command == "curate":
         from .config import set_active
