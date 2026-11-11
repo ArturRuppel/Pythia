@@ -27,12 +27,8 @@
     .replace(/&lt;(\/?)(i|b|em|strong|sub|sup)&gt;/g, "<$1$2>");
   const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
   const person = n => { const i = n.indexOf(", "); return i < 0 ? n : `${n.slice(i + 2)} ${n.slice(0, i)}`; };
-  function authors(a, max = 8){
-    if (!a || !a.length) return "";
-    const names = a.map(x => person(x[0]));
-    return names.length > max ? names.slice(0, max - 1).join(", ") + ", … " + names[names.length - 1]
-                              : names.join(", ");
-  }
+  // The paper page shows the whole byline: it is the one place you go to see who wrote it.
+  const authors = a => (a && a.length) ? a.map(x => person(x[0])).join(", ") : "";
   const PASS = ["Uncurated", "Bibliography", "Skeleton", "Contextualized", "Curated"];
   const pm = (p, lg) => `<span class="pa-pm${lg ? " lg" : ""}">`
     + [1, 2, 3, 4].map(i => `<i class="${i <= (p || 0) ? "on" : ""}"></i>`).join("") + `</span>`;
