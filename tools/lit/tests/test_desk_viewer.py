@@ -89,11 +89,13 @@ def test_the_desk_derivation():
     for (const k of ['Same', 'NoPass', 'Aim']) assert.equal(deskStatus(PAPERS[k]), null, k);
     assert.equal(deskStatus(PAPERS.Fresh), 'new');
     assert.deepEqual(deskKeys(new Set(['Behind', 'Same'])), {new: [], changed: ['Behind']});
-    // the board's status mark: the validated pass, plus "new" / "curated M" when not caught up
+    // the board's status mark: the validated pass solid, curation ahead of it line-shaded
     assert.match(vstat(PAPERS.Fresh), />new</);
+    assert.match(vstat(PAPERS.Fresh), /pc-hatch/);
     assert.match(vstat(PAPERS.Behind), /curated 3/);
-    assert.doesNotMatch(vstat(PAPERS.Same), /vmark/);
-    assert.doesNotMatch(vstat(PAPERS.Ahead), /vmark/);          // only curation AHEAD is marked
+    assert.match(vstat(PAPERS.Behind), /pc-hatch/);
+    assert.doesNotMatch(vstat(PAPERS.Same), /vmark|pc-hatch/);
+    assert.doesNotMatch(vstat(PAPERS.Ahead), /vmark|pc-hatch/);  // only curation AHEAD is marked
     """)
 
 

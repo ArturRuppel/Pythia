@@ -606,7 +606,7 @@ if (!DETACHED) (function(){
   const status = k => { const p = PAPERS[k], m = curPass(p);
     return p.validated == null ? `new · curated ${m} ${passLabel(m)}` : `validated ${p.validated} · curated ${m}`; };
   const row = k => `<div class="wp-row" data-k="${k}" title="show ${k} on the board">`
-    + `${passCircle(PAPERS[k].validated || 0)}<span class="ckey">${k}</span>`
+    + `${passCircle(PAPERS[k].validated || 0, curPass(PAPERS[k]))}<span class="ckey">${k}</span>`
     + `<span class="stage">${status(k)}</span>`
     + (LIVE ? `<button class="wp-done" data-done="${k}"${pending.has(k) ? " disabled" : ""}`
       + ` title="validate ${k} at ${curPass(PAPERS[k])} · ${passLabel(curPass(PAPERS[k]))}">✓</button>` : "")

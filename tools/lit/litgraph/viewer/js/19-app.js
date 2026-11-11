@@ -31,15 +31,15 @@
   // The paper page shows the whole byline: it is the one place you go to see who wrote it.
   const authors = a => (a && a.length) ? a.map(x => person(x[0])).join(", ") : "";
   const PASS = [0, 1, 2, 3, 4].map(passLabel);   // ingested · abstract · intro+disc · results · methods
-  const pm = (p, lg) => `<span class="pa-pm${lg ? " lg" : ""}">`
-    + [1, 2, 3, 4].map(i => `<i class="${i <= (p || 0) ? "on" : ""}"></i>`).join("") + `</span>`;
+  // The meter: one square per pass. Solid = validated by the owner; hatched = curated, not yet
+  // validated (`m`, the curated pass; omitted for stubs); empty = not curated that far.
+  const pm = (p, lg, m) => `<span class="pa-pm${lg ? " lg" : ""}">`
+    + [1, 2, 3, 4].map(i => `<i class="${i <= (p || 0) ? "on" : i <= (m || 0) ? "cur" : ""}"></i>`).join("") + `</span>`;
   // A paper's status everywhere in the app is the VALIDATED pass (the desk, SCHEMA §4): the meter
-  // shows it, and a quiet marker says when the owner has not caught up — "New" if never validated,
-  // "curated M" when curation ran ahead.
+  // shows it solid, with the passes curation ran ahead hatched; "New" marks a never-validated paper.
   const vst = (p, lg) => {
     const v = p.validated, m = curPass(p);
-    return `<span class="pa-vst">${pm(v, lg)}${v == null ? `<span class="pa-vnew">New</span>`
-      : m > v ? `<span class="pa-ahead">curated ${m}</span>` : ""}</span>`;
+    return `<span class="pa-vst" title="${v == null ? "new" : `validated ${v}`} · curated ${m}">${pm(v, lg, m)}${v == null ? `<span class="pa-vnew">New</span>` : ""}</span>`;
   };
   const CHEV = `<svg class="pa-chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>`;
   const MARK = `<svg viewBox="0 0 48 48"><g fill="#f3f3f4"><rect x="11" y="29" width="26" height="3"/>`
@@ -689,7 +689,7 @@
     const tags = p.tags || [];
     let h = `<div class="pa-col"><div class="pa-head"><span class="pa-cap">${tx([key, p.type, p.year].filter(Boolean).join(" · "))}</span>`
       + `<h1>${tx(p.title || key)}</h1>` + (p.authors && p.authors.length ? `<span class="pa-auth">${tx(authors(p.authors))}</span>` : "")
-      + `<span class="pa-pass">${pm(p.validated, true)}${p.validated == null ? `New · not yet validated` : `Validated ${p.validated} of 4 · ${PASS[p.validated]}`}`
+      + `<span class="pa-pass">${pm(p.validated, true, curPass(p))}${p.validated == null ? `New · not yet validated` : `Validated ${p.validated} of 4 · ${PASS[p.validated]}`}`
       + `${p.validated !== curPass(p) ? `<span class="pa-ahead">curated ${curPass(p)} · ${PASS[curPass(p)]}</span>` : ""}</span>`
       + (tags.length ? `<span class="pa-tags">` + tags.map(t => `<button ${act(() => { remember(t); keepPos(); S.tab = "search"; S.q = t; S.stacks.search = []; S.future.search = []; saveNav(); render(0); })}>${tx(t)}</button>`).join("") + `</span>` : "")
       + (pdfOK(key) ? `<span class="pa-links"><button class="pa-btn" ${act(() => showPdf(key, focus))}>Read PDF alongside</button><a href="pdf/${encodeURIComponent(key)}.pdf" target="_blank" rel="noopener">Open the PDF</a></span>` : "")

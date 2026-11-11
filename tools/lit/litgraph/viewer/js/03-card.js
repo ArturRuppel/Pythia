@@ -1,16 +1,23 @@
 // a pass (SCHEMA §4) as a pie-filled circle: n/4. Empty ring = stub or nothing validated (0),
 // full disk = 4. Cards and rows draw the VALIDATED pass with it (vstat, below).
-function passCircle(pass){
-  const p = Math.max(0, Math.min(4, pass || 0)), frac = p / 4, r = 7;
+// `curated` (optional) is how far curation ran: the part of it beyond `pass` is line-shaded —
+// curated, not yet validated.
+function passCircle(pass, curated){
+  const clamp = n => Math.max(0, Math.min(4, n || 0)), p = clamp(pass), m = clamp(curated), r = 7;
   const ring = `<circle cx="8" cy="8" r="${r}" fill="none" style="stroke:var(--faint);stroke-width:1.3"/>`;
-  let wedge = "";
-  if (frac >= 1) wedge = `<circle cx="8" cy="8" r="${r}" style="fill:var(--grounded)"/>`;
-  else if (frac > 0) {
+  const wedge = (n, fill) => {
+    const frac = n / 4;
+    if (frac >= 1) return `<circle cx="8" cy="8" r="${r}" style="fill:${fill}"/>`;
+    if (frac <= 0) return "";
     const a = frac * 2 * Math.PI, ex = 8 + r * Math.sin(a), ey = 8 - r * Math.cos(a);
-    wedge = `<path d="M8,8 L8,${8 - r} A${r},${r} 0 ${frac > 0.5 ? 1 : 0} 1 ${ex.toFixed(2)},${ey.toFixed(2)} Z" style="fill:var(--grounded)"/>`;
-  }
+    return `<path d="M8,8 L8,${8 - r} A${r},${r} 0 ${frac > 0.5 ? 1 : 0} 1 ${ex.toFixed(2)},${ey.toFixed(2)} Z" style="fill:${fill}"/>`;
+  };
+  // the hatched wedge spans 0..curated and the solid one is drawn over it, so only the part
+  // beyond the validated pass shows
+  const hatch = m > p ? `<defs><pattern id="pc-hatch" width="3" height="3" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">`
+    + `<rect width="1.1" height="3" style="fill:var(--hm-home)"/></pattern></defs>` + wedge(m, "url(#pc-hatch)") : "";
   return `<span class="circle" title="curation maturity ${p}/4">`
-       + `<svg width="16" height="16" viewBox="0 0 16 16">${ring}${wedge}</svg></span>`;
+       + `<svg width="16" height="16" viewBox="0 0 16 16">${hatch}${wedge(p, "var(--hm-home)")}${ring}</svg></span>`;
 }
 // ── the desk (SCHEMA §4): what the owner has validated, against how far curation ran ─────────
 // `pass` is how far curation ran; `validated` is the pass the OWNER has validated (absent: never
@@ -39,16 +46,15 @@ function deskKeys(only){
   out.new.sort(newest); out.changed.sort(newest);
   return out;
 }
-// A paper's status wherever the board shows one: the VALIDATED pass as the pie, and a quiet
-// marker when the owner has not caught up — "new" if never validated, "curated M" if curation ran
-// ahead. `.vstat` is the handle validatePaper swaps in place.
+// A paper's status wherever the board shows one: the VALIDATED pass as the solid part of the pie,
+// the passes curation ran ahead line-shaded, and a quiet "new" on a never-validated paper.
+// `.vstat` is the handle validatePaper swaps in place.
 function vstat(p){
   const v = p.validated, m = curPass(p);
-  const mark = v == null ? `<span class="vmark">new</span>`
-    : m > v ? `<span class="vmark" title="curation ran to pass ${m} · ${passLabel(m)}">curated ${m}</span>` : "";
+  const mark = v == null ? `<span class="vmark">new</span>` : "";
   const title = v == null ? `new · never validated · curated ${m} ${passLabel(m)}`
-    : `validated ${v}/4 · ${passLabel(v)}`;
-  return `<span class="vstat" title="${title}">${passCircle(v || 0).replace(/ title="[^"]*"/, "")}${mark}</span>`;
+    : `validated ${v}/4 · ${passLabel(v)}` + (m > v ? ` · curated ${m} ${passLabel(m)}` : "");
+  return `<span class="vstat" title="${title}">${passCircle(v || 0, m).replace(/ title="[^"]*"/, "")}${mark}</span>`;
 }
 function authLine(a){return a.map(([n, pos, corr]) =>
   corr ? `<span class="star">${n}*</span>` : n).join(' · ');}
