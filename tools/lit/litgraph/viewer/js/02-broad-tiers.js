@@ -52,8 +52,7 @@ const synthLabel=()=>"synthesis →";
 // precisely what `localDag` was written to stop doing to the paper card. So: a node NESTS under the
 // first parent its authored `leads_to` names, and every other parent gets a REFERENCE row pointing
 // at the real card. Authored order means the curator decides which parent hosts, with no magic to
-// reverse-engineer. Three nodes today, one of which (vimentin-effect-is-context-dependent) is the
-// only one whose parents sit under different roots.
+// reverse-engineer. A node whose parents sit under different roots is the case this exists for.
 let broadHost={};      // slug -> the parent that nests it ("" for a root)
 let broadNest={};      // slug -> children nested inside it, in ladder order
 let broadRefs={};      // slug -> children that live elsewhere and are only referenced here

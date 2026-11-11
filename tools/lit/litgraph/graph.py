@@ -230,7 +230,7 @@ class Aim:
     Kept out of `Graph.papers` on purpose: an aim is not a paper, and the viewer's
     paper-centric emit layer must not have to pretend otherwise."""
 
-    slug: str                       # includes the sigil, e.g. "@fluid-solid-switch"
+    slug: str                       # includes the sigil, e.g. "@adaptive-batching"
     title: str
     note: str | None = None
     tags: list[str] = field(default_factory=list)

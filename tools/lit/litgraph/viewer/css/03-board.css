@@ -109,7 +109,7 @@
   .card.open.absopen .cabs{display:block}
   .card.open .cbib{display:block}
   /* the aim card's punchline. A paper's card is a bibliography record — its citekey identifies it
-     and the title can wait for the open state. An aim has no such handle: `@fluid-solid-switch`
+     and the title can wait for the open state. An aim has no such handle: `@adaptive-batching`
      collapsed told a reader nothing at all. So an aim's title and its one-line thesis (the first
      sentence of `note`) read on the CLOSED card, and the rest of the pitch follows when it opens.
      Placed after the .card.open rules so equal specificity resolves this way. */

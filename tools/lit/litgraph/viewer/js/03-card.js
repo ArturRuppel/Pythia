@@ -109,7 +109,7 @@ function paperCard(key, level){
   const narr = !!(PAPERS[key] && PAPERS[key].narr);
   // the two programme containers share a header: no curation maturity (a reading protocol for a
   // document that already exists) and no year, and their title reads on the CLOSED card, since
-  // `@fluid-solid-switch` / `~cnrs-v2` collapsed tells a reader nothing at all.
+  // `@adaptive-batching` / `~synth-grant` collapsed tells a reader nothing at all.
   const prog = aim || narr;
   const id = `${level}:${key}`;
   const el = document.createElement("div");

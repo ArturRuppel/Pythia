@@ -12,8 +12,8 @@ function dragBy(handle, onMove, base, guard){
 }
 
 // ── boot: the landing list (column 0), ranked by pass desc, then year desc ───────────────
-// The landing column lists CURATED papers only. ORDER carries the whole bibliography (~3.7k
-// entries against 54 curated ones), and rendering a card for each built a ~187k-px column whose
+// The landing column lists CURATED papers only. ORDER carries the whole bibliography (thousands
+// of entries against a few dozen curated ones), and rendering a card for each built a ~187k-px column whose
 // mere existence taxed every forced relayout — one per click, one per hover. Measured at 4x CPU
 // throttle, trimming it cut a click from 34.8 ms to 13.6 ms and rebuild() from 23.2 to 10.2 ms.
 //

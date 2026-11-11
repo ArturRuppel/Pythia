@@ -19,8 +19,8 @@ function expandCard(level,key,p,grp){
   // reads well for one source and not at all for twelve: a paper's grounds column came up as a wall
   // of open cards, every one of them carrying its own title, byline, abstract and 20-odd slice rows,
   // and finding any single paper in it meant scrolling past the rest. That was already conceded for
-  // programme containers (the CNRS introduction grounds 37 sentences in 54 curated papers), where it
-  // was written down as a special case; it is the general rule now, and the same one the landing
+  // programme containers (a grant narrative's introduction can ground dozens of sentences in dozens
+  // of papers), where it was written down as a special case; it is the general rule now, and the same one the landing
   // column has always followed — collapsed body, depth earned by focusing
   // (docs/2026-06-25-visualization-design.md).
   //

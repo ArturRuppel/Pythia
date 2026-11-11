@@ -326,8 +326,7 @@ def test_validate_broad_ladder_rejects_a_self_cycle():
 
 
 def test_validate_broad_ladder_accepts_a_multi_parented_dag():
-    # a broad claim may ladder into two heads at once (division-injects-active-stress does,
-    # in the real library) -- a DAG, not a cycle, and must pass clean
+    # a broad claim may ladder into two heads at once -- a DAG, not a cycle, and must pass clean
     broad = {
         "child": BroadNode(slug="child", kind="broad claim", text="c",
                            leads_to=["head1", "head2"]),
