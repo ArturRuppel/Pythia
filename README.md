@@ -129,12 +129,28 @@ Everything runs through the `lit` CLI.
   lit map --find latency floor             # a phrase -> the nearest part of the map
   ```
 
+- **`lit desk`** / **`lit validate`**: the desk is the papers whose curation
+  moved past what *you* validated. Each curated paper carries `pass` (how far
+  curation ran, often raised by agents) and `validated` (the pass you have
+  validated, written only by you). A paper is on the desk while the two differ,
+  or before you have validated it at all; an agent rewriting it at the same pass
+  does not put it back. The viewer shows the same desk (the app's Desk tab, the
+  board's "desk" pill) with a Validate action, and shows your validated pass as
+  every paper's status.
+
+  ```bash
+  lit desk                                 # new (never validated) and changed (validated N -> pass M)
+  lit desk --collection batching-review    # one collection's desk; --json for scripts
+  lit validate Kumar2020Net                # validated := its current pass
+  lit validate Lopez2019Arch --pass 1      # or a lower level: read only the abstract
+  lit validate --all --dry-run             # everything on the desk, previewed
+  ```
+
 Smaller commands round out the loop: `lit enrich` and `lit abstracts` backfill
 stub metadata and abstracts onto papers ingested before those fields existed,
 `lit tag` edits a paper's tags, `lit topics` reports the topic axis (including
 `--orphans` for dead keywords and unfiled tags), `lit programme` reports the
-programme graph's emergent state, and `lit curate` moves a paper in or out of
-the reading list (`[curation] active`). Every one of them has `--help`.
+programme graph's emergent state. Every one of them has `--help`.
 
 ## Install the viewer on a phone
 
@@ -167,8 +183,8 @@ PDFs · X GB", or "server not reachable · offline copy from <time>".
 A service worker (`/sw.js`) answers from that copy. The page and the graph come
 from the server first and from the copy when the server does not answer within
 four seconds; PDFs come from the copy first, including byte ranges. Running
-from the copy, the moves that write (curate a paper, remove it from the
-reading list) are disabled with the reason beside them, and the PDF pane shows
+from the copy, the desk still lists its papers but Validate is disabled with
+the reason beside it, and the PDF pane shows
 the cached PDF in the browser's own viewer instead of server-rendered pages,
 so quote highlights and find-in-PDF need the server.
 
@@ -189,7 +205,8 @@ pass and never tokenizing ahead of agreement. **Batch** — a dispatched agent i
 given one paper and a target pass up front, climbs to it in a single run, and the
 finished proposition is reviewed as a git diff. Batch buys throughput at the cost
 of alignment bandwidth; see [CURATION.md](CURATION.md) for the briefing rules that
-keep it honest.
+keep it honest. In either mode the agent raises `pass` and never touches
+`validated`: that number is the owner's.
 
 ## Read next
 

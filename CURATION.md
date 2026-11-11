@@ -1,7 +1,7 @@
 # CURATION: how to read a paper into its local subgraph
 
 **Status:** v2, the lean slice model. **Date:** 2026-06-25. **Batch mode added:** 2026-08-21.
-**Last revised:** 2026-09-01. Companion to [CONCEPT.md](CONCEPT.md) and [SCHEMA.md](SCHEMA.md).
+**Last revised:** 2026-11-11. Companion to [CONCEPT.md](CONCEPT.md) and [SCHEMA.md](SCHEMA.md).
 
 CONCEPT says what the graph is and SCHEMA says how it is stored. This document is the
 reading protocol: the structured pass an agent makes over one paper's full text to propose
@@ -56,8 +56,10 @@ conventional coding-agent session, so the explain step happens in the session's 
 In batch mode this loop collapses to its two ends: the target pass is agreed at dispatch and
 the whole proposition is judged on the git diff.
 
-The `active` worklist, driven by `lit curate` or the viewer's right-click "Curate this
-paper", is a reading list the human keeps papers on. It does not launch a session.
+**`validated` is the owner's; never write it.** Next to `pass` a curated file may carry
+`validated: N`, the pass the owner has validated (SCHEMA section 4). Curation, interactive or
+batch, never adds, changes or removes that line, and an agent never runs `lit validate`. Raising
+`pass` is what puts a paper on the owner's desk; the owner takes it off by validating.
 
 ### Render the proposition
 
@@ -103,12 +105,13 @@ Record the rung reached as `pass: 0–4` on the curated file:
 | 3 | results | claims sharpened and welded to phrases describing the data |
 | 4 | methods | methods read precisely, their citations traced and linked: the full sweep |
 
+Bump `pass` only; leave a `validated:` line exactly as you found it, and never add one.
 Climb one rung at a time, bumping `pass` as you go: one rung per sitting in interactive
 mode, or up to the dispatched target in a batch run. Stopping early is a normal resting
 state, not an unfinished task, and a batch target below 4 is a deliberate resting place
-rather than a job left half done. The interface ranks and renders this number as the
-curation circle described in
-[docs/2026-06-25-visualization-design.md](docs/2026-06-25-visualization-design.md). A stub
+rather than a job left half done. The interface shows the owner's `validated` pass as a
+paper's status and puts the paper on the owner's desk when `pass` moves past it
+([docs/2026-11-11-desk.md](docs/2026-11-11-desk.md)). A stub
 carries no `pass`; breadth stays emergent via file presence (SCHEMA section 1). The reading
 passes below are these rungs, with the same numbers and the same names.
 
@@ -299,7 +302,8 @@ valid. Until then, SCHEMA section 6 is the manual checklist.
   terminal window per paper, driven by a focus wire, and the card window hot-reloaded itself
   on every edit. Curation now runs from a conventional coding-agent session against the data
   repo, the human reloads the card in the ordinary viewer, and `lit serve` is purely the graph
-  viewer. The `active` worklist survived the cockpit as a plain reading list. The cockpit is
+  viewer. The `active` worklist survived the cockpit as a plain reading list, until the desk
+  replaced it on 2026-11-11 ([docs/2026-11-11-desk.md](docs/2026-11-11-desk.md)). The cockpit is
   specified in [docs/2026-07-28-curation-windows.md](docs/2026-07-28-curation-windows.md)
   and sections 3 and 4 of
   [docs/2026-07-09-cockpit-redesign-in-progress-zone.md](docs/2026-07-09-cockpit-redesign-in-progress-zone.md).

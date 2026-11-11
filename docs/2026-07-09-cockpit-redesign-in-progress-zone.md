@@ -14,6 +14,9 @@
 > [curation windows](2026-07-28-curation-windows.md). Everything else here still holds: the move,
 > the `active` worklist, the focus wire, the browse view.
 
+> **Gone (2026-11-11):** the `active` worklist, `lit curate` and `POST /active` — the desk replaced
+> them. See [the desk](2026-11-11-desk.md).
+
 The cockpit doc built curation as a **global window mode** (`lit serve --curate` reshapes the whole
 view). This delta rotates that: curation becomes a **per-paper place** you *move a paper into*. The
 main view stays the graph; a paper you decide to curate is pulled out of it into an **in-progress

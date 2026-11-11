@@ -90,11 +90,6 @@ manual. Viewer behaviour is specified in [docs/](docs/) — see the design index
   YAML it renders **a proposition before it is tokenized** — the curation loop's "show it
   as it'll look" step — and flags non-verbatim quotes at proposition time. Also renders an
   **aim** (`lit preview '@<slug>'`), so the same loop works on proposed work.
-- **`lit curate <citekey>`** / **`--done`** — move a paper on/off the reading list
-  (`[curation] active` in config.toml). Same state the viewer's right-click and the
-  "reading list" pill drive; there's no cockpit behind it any more (curation itself runs
-  as a conventional coding-agent session — CURATION.md), so this is now how a human flags
-  a paper to come back to, not a session launcher.
 - **`lit locate`** — resolve every curated quote's place in its PDF (full-coverage
   word-geometry match) and store it as `quote_loc`. Derived, never hand-authored; additive,
   never affects graph structure. `--force` re-resolves, `--dry-run` reports.
@@ -127,6 +122,21 @@ manual. Viewer behaviour is specified in [docs/](docs/) — see the design index
   capability, aspirational capabilities, open questions, orphans. `--strict` for CI.
   Terminal only — every payoff lands without the viewer.
 
+**The owner's desk** — `validated` is the owner's; **never write it, never run `lit validate`.**
+
+- **`lit desk`** — list the desk: the curated papers whose curation moved past what the owner
+  validated, as **new** (`validated` absent) and **changed** (validated N → pass M), newest
+  curation record first; `--collection` / `--topic` / `--tag`, `--json`. **A paper is on the desk
+  iff `validated` is absent or differs from `pass` (absent `pass` = 0) — derived, never stored**,
+  so an agent rewriting a paper at the same pass leaves it off and only a change of `pass` puts it
+  back. Read-only, from the loaded graph alone, like `lit map`. Agents may run it.
+- **`lit validate <citekey>… [--pass N]`** — the owner records the pass they have validated: the
+  paper's current pass, or N (0–4); `--collection <slug>` / `--all` validate everything on the desk
+  in that scope (each at its own pass), `--dry-run` previews. **Only the owner writes `validated`
+  — through this command or the viewer's Validate action (serve's `POST /validate`).** `lit
+  ingest` never writes it, curation never touches it (CURATION.md). One line under `pass:`, every
+  other byte of the file kept. A `validated` above `pass` is legal and a `lit build` warning.
+
 **Viewing**
 
 - **`lit build`** — the static, shareable artifact: reads the YAML, computes emergent
@@ -136,7 +146,7 @@ manual. Viewer behaviour is specified in [docs/](docs/) — see the design index
 - **`lit serve`** — the same viewer over loopback: the graph rebuilds from the YAML on every
   refresh, so a curator's edit shows up on reload, and a broken edit returns the validation
   error without killing the server. Adds what a static file cannot — the docked PDF viewer,
-  the reading-list pill, the aims pill, live stub abstracts. Anything serve-only stays hidden
+  the Validate action (the desk), the aims pill, live stub abstracts. Anything serve-only stays hidden
   in `lit build`. The in-browser curation cockpit (a card + paper + terminal window per paper,
   driven by a focus wire and `POST /term`) was retired 2026-08-27: curation now runs as a
   conventional coding-agent session against the data repo, following CURATION.md, with the
@@ -154,6 +164,7 @@ reversal each one records.
 | [2026-08-03-topics-and-claim-altitudes.md](docs/2026-08-03-topics-and-claim-altitudes.md) | the synthesis band as **containment**, one box per ladder root. §6 and §6.1 record two reversals — hiding-until-clicked, and altitude columns. **Length is not the defect; unstructured length is.** |
 | [2026-08-03-the-walk-design.md](docs/2026-08-03-the-walk-design.md) | the walk: one focus, one relation, no drawn edges. `contains` is a **roster**, the only complete view, and it flags `unwired` slices |
 | [2026-07-09-cockpit-redesign-in-progress-zone.md](docs/2026-07-09-cockpit-redesign-in-progress-zone.md) §2 | the browse view's collapsible/detachable docked PDF pane — still current. (§§3–4 of the same doc, and [2026-07-28-curation-windows.md](docs/2026-07-28-curation-windows.md) entirely, specify the curation cockpit, retired 2026-08-27 — see CURATION.md) |
+| [2026-11-11-desk.md](docs/2026-11-11-desk.md) | the desk: `validated` beside `pass`, the desk derived from the two, the validated pass as every paper's status (app, board, library sort, landing rank), Validate and its lower levels, offline/static behaviour; what the reading list it replaced was |
 | [2026-10-29-collections.md](docs/2026-10-29-collections.md) | collections (the purpose axis): why not a tag; found by title in search (board: a row above the papers, opened uncapped; app: its own screen); the Topics tab leads with them; the library rail's collection facet |
 | [2026-08-02-programme-graph-design.md](docs/2026-08-02-programme-graph-design.md) | the programme graph and its narrative layer |
 | [2026-08-25-claim-map-design.md](docs/2026-08-25-claim-map-design.md) | the claim map (`prototypes/claim-map/`): the 44 broad claims on one page, x = median year of their papers, y = ladder altitude. §1 records the rejected similarity-embedding proposal, §3 the measurement that rules out a topic band as an axis |
@@ -187,6 +198,10 @@ follow its protocol. There are **two modes**, and which one you are in is set by
 human is present. In both, the human is the gate: you propose, they accept / edit / reject, and
 nothing is curated until they commit it.
 
+**`validated` is the owner's; never write it.** A curated file may carry `validated: N` under
+`pass:` — the pass the owner has validated, which drives their desk. Curation raises `pass` and
+leaves that line exactly as found; never add, change or remove it, and never run `lit validate`.
+
 **Interactive** (human present, usually with `lit serve` and the card open) — never a one-shot
 file dump:
 
@@ -207,7 +222,8 @@ finished proposition as a git diff:
 - **A finding that undermines the claim you were asked to support is the most valuable thing
   you can return.** Do not stretch, soften, or select slices to make a hypothesis look
   supported. Write the gap into the claim text and flag it in your report.
-- Touch only `curated/<citekey>.yaml`. Sibling agents may be running; do not run `lit build`.
+- Touch only `curated/<citekey>.yaml`, and in it never the `validated:` line. Sibling agents may
+  be running; do not run `lit build`.
 
 ## Working with this project
 
