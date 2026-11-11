@@ -9,7 +9,7 @@
      the identical graph, toggled from the HUD. */
   #walkPane{display:none}
   body.walk #board,body.walk #searchResults,body.walk #ctxmenu,
-  body.walk #wipPanel,body.walk #aimPanel{display:none!important}
+  body.walk #deskPanel,body.walk #aimPanel{display:none!important}
   body.walk #walkPane{display:flex;position:fixed;left:0;right:0;bottom:0;
     top:var(--hud-top);z-index:20;background:var(--bg);transition:top .18s ease}
   body.walk{overflow:hidden}

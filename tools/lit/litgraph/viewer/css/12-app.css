@@ -1,6 +1,6 @@
   /* ── the Pythia app: the touch reading view (iPhone + iPad) ─────────────────────────────────
      A second face on the same GRAPH, not a restyle of the board: a tab bar (Library · Topics ·
-     Reading · Search), each tab its own push stack of screens (paper, claim, stance ledger).
+     Desk · Search), each tab its own push stack of screens (paper, claim, stance ledger).
      body.app swaps it in for the board; 19-app.js decides when. Everything here is scoped under
      #app so the board's ELN theme (00-theme.css) is untouched. Tokens follow the Pythia design
      (Claude Design "Logo mark refinement round 2"), with the values now read from the family sheet:
@@ -329,5 +329,20 @@
   #app .pa-sort select{flex:1;min-width:0;max-width:100%;height:44px;padding:0 8px;border:1px solid var(--pa-divider);border-radius: 0;background:var(--pa-bg);color:var(--pa-text);font:400 14px var(--pa-font)}
   #app .pa-sort select:focus-visible{outline:2px solid var(--pa-p)}
 
-#app button.pa-reading-remove{min-height:44px;color:var(--pa-pd);text-decoration:underline;align-self:flex-start}
-#app button.pa-reading-remove:disabled{opacity:.55;cursor:wait}
+  /* the status: the validated pass's meter, and a quiet marker when the owner has not caught up */
+  #app .pa-vst{margin-left:auto;display:flex;align-items:center;gap:6px}
+  #app .pa-vst .pa-pm{margin-left:0}
+  #app .pa-vnew,#app .pa-ahead{font:400 11px/1 var(--pa-font);color:var(--pa-n700);white-space:nowrap}
+  #app .pa-vnew{font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+  #app .pa-pass .pa-ahead{font-size:12px}
+  /* Validate (serve only): the paper's pass, then the lower levels behind a disclosure */
+  #app .pa-validate{display:flex;flex-direction:column;align-items:flex-start;gap:2px}
+  #app button.pa-vbtn{min-height:44px;color:var(--pa-pd);text-decoration:underline}
+  #app button.pa-vbtn:disabled,#app button.pa-vlevel:disabled{opacity:.55;cursor:wait}
+  #app .pa-vpick summary{min-height:44px;display:flex;align-items:center;cursor:pointer;
+    font:400 13px var(--pa-font);color:var(--pa-n700)}
+  #app .pa-vpick summary::-webkit-details-marker{display:none}
+  #app .pa-vpick summary::before{content:"▸";margin-right:6px}
+  #app .pa-vpick[open] summary::before{content:"▾"}
+  #app .pa-vlevels{display:flex;flex-wrap:wrap;gap:6px;padding:0 0 6px}
+  #app button.pa-vlevel{min-height:44px;padding:0 12px;border:2px solid var(--pa-divider);font:600 13px var(--pa-font)}

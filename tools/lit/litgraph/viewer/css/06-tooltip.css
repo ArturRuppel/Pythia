@@ -18,13 +18,16 @@
     max-height:240px;overflow-y:auto;border-top:1px solid var(--line);padding-top:8px}
   .hint{position:fixed;bottom:12px;left:16px;font-size:11px;color:var(--faint);z-index:30}
 
-  /* right-click "Curate this paper" menu (serve only, browse view) */
+  /* right-click "Validate" menu (serve only, browse view): the paper's pass, then the lower levels */
   #ctxmenu{position:fixed;z-index:70;display:none;min-width:150px;padding:4px;
     background:var(--panel);border:1px solid var(--line);border-radius: 0;
     box-shadow:0 12px 40px rgba(28,27,34,.20)}
   #ctxmenu button{display:block;width:100%;text-align:left;border:0;background:transparent;
     font:inherit;font-size:11px;color:var(--ink);padding:6px 10px;border-radius: 0;cursor:pointer}
   #ctxmenu button:hover{background:var(--bg)}
+  #ctxmenu button:disabled{color:var(--faint);cursor:default;background:transparent}
+  #ctxmenu .ctx-hd,#ctxmenu .ctx-sub{padding:5px 10px 3px;font-size:10px;letter-spacing:1px;
+    text-transform:uppercase;color:var(--faint)}
 
   /* floating PDF quote window: the page rendered, the quote highlighted, movable/zoomable */
   .pw{position:fixed;z-index:60;width:440px;height:520px;display:flex;flex-direction:column;

@@ -108,7 +108,7 @@ const hang = () => new Promise(() => {});
   // left alone entirely: the sync's own fetches, writes, server-only reads, other origins
   assert.equal(await dispatch(req('pdf/Key2020Abc.pdf', {cache: 'no-store'})), null);
   assert.equal(await dispatch(req('offline.json', {cache: 'no-store'})), null);
-  assert.equal(await dispatch(req('active', {method: 'POST'})), null);
+  assert.equal(await dispatch(req('validate', {method: 'POST'})), null);
   assert.equal(await dispatch(req('page/Key2020Abc/0.jpg?w=640')), null);
   assert.equal(await dispatch(req('https://elsewhere.example/pdf/Key2020Abc.pdf')), null);
 })().catch((e) => { console.error(e); process.exitCode = 1; });

@@ -4,8 +4,7 @@
 // client-side, so a static `lit build` keeps it working offline. It indexes the WHOLE
 // bibliography, curated or not — since the landing column trimmed down to curated papers, this is
 // the only path to a stub, and gotoPaper mints its card on demand. Curated papers rank above stubs
-// (ORDER is already curated-first). Papers on the reading list (ACTIVE) are held off the landing
-// column, but remain searchable: naming one is what asks gotoPaper to mint its card on demand.
+// (ORDER is already curated-first).
 const searchInput = document.getElementById("search");
 const searchResults = document.getElementById("searchResults");
 let searchIndex = null;
@@ -19,10 +18,10 @@ function buildSearchIndex(){
     const tags = (cur && p.tags) ? p.tags : [];            // tags are curated-only
     const blob = [key, p.title || "", authors.join(" "), journal, p.year || "", tags.join(" ")]
       .join(" ").toLowerCase();
-    // `pass` is curated-only and rides along for the library view's ranking badge; the search
-    // dropdown ignores it.
+    // `pass` is the VALIDATED pass (the desk, SCHEMA §4), curated-only; the library rail reads
+    // the live status from PAPERS when it paints a row (vstat), and the search dropdown ignores it.
     rows.push({key, cur, title: p.title || key, authors, journal, year: p.year, tags,
-               pass: cur ? p.pass : null, blob});
+               pass: cur ? p.validated : null, blob});
   }
   return rows;
 }
@@ -141,13 +140,13 @@ function gotoPaper(key){
   // about it, and appending it left the one paper you asked for at the very bottom of a column of
   // thousands, which is also the one place scrollIntoView cannot centre. So it is hoisted to the
   // top instead. Both mint sites are covered: syncLanding below for a summoned stub, and the
-  // addPaper for a reading-list paper, which is held off the column until named.
+  // addPaper fallback for any paper the column does not hold.
   const minted = !document.getElementById(`card-0:${key}`);
   syncLanding();                             // mints a summoned stub's card, and refreshes every
   let el = document.getElementById(`card-0:${key}`);     // card's provenance + the column header
-  if(!el){                                   // a reading-list paper (ACTIVE) is held off the
-    addPaper(0, key);                        // landing column — but naming it by hand outranks
-    el = document.getElementById(`card-0:${key}`);       // that, so mint the card
+  if(!el){                                   // a paper the landing column does not hold:
+    addPaper(0, key);                        // naming it by hand mints its card
+    el = document.getElementById(`card-0:${key}`);
     if(!el) return;
   }
   if(minted) hoistAll([el]);                             // summoned by name → top of the column
@@ -411,9 +410,10 @@ if(!DETACHED) (function(){
     const badge = r.cur ? "" : `<span class="lr-badge">stub</span>`;
     const tags = (r.tags || []).slice(0, 8)
       .map(t => `<span class="lr-tag">${esc(t)}</span>`).join("");
-    // the same pie the board's cards carry (pass/4), in a gutter the title can't clip
+    // the same status the board's cards carry (the validated pass, vstat), in a gutter the title
+    // can't clip; read live from PAPERS so a paper validated since boot repaints right
     return `<div class="lr ${r.cur ? "" : "stub"}" data-key="${esc(r.key)}">`
-         + `<div class="lr-ind">${passCircle(r.cur ? r.pass : 0)}</div>`
+         + `<div class="lr-ind">${r.cur ? vstat(PAPERS[r.key]) : passCircle(0)}</div>`
          + `<div class="lr-body">`
          + `<div class="lr-t">${esc(r.title)}</div>`
          + `<div class="lr-m">${badge}${esc(r.key)}${who || bib ? "  ·  " + [who, bib].filter(Boolean).join("  ·  ") : ""}</div>`
@@ -520,17 +520,6 @@ board.addEventListener("scroll",redraw);
 addEventListener("resize",redraw);
 addEventListener("resize",redraw);
 
-// ── the reading list: `[curation] active`, surfaced as the WIP panel (serve only) ─────────
-// Curation moved outside the browser — a conventional coding agent works the paper against
-// `curated/<citekey>.yaml` directly, following CURATION.md, with the human reviewing the diff.
-// `[curation] active` survives that move as a plain reading list: papers you asked to keep in
-// view. The right-click "Curate this paper" on a card (10-pdf.js) and `lit curate` both add to
-// it; the "reading list" pill below reads it back and opens a picker. There used to be a third
-// door here — clicking a row opened three real OS windows (an isolated card, a PDF pane polling
-// a focus wire, a terminal running that paper's agent session) and POSTed to `/term` to spawn
-// it. All of that — the focus wire, the card/paper window split, `/term`, `lit focus` — was the
-// curation cockpit, and it went with the cockpit: a row click now just finds the paper on the
-// board, the same gesture a search result or a library row already makes (gotoPaper).
 // The programme index: a HUD pill listing everything in the programme layer, each row a link to
 // its own page at /preview.html?key=<slug> — the same isolated view `lit preview` writes, so the
 // served page and the written one cannot drift. Server-only (/aims.json is a `lit serve` route),
@@ -545,7 +534,7 @@ if (LIVE && !DETACHED) (function(){
   const pill = document.getElementById("aims");
   const panel = document.getElementById("aimPanel");
   if (!pill || !panel) return;
-  const cardUrl = slug => {                 // built off THIS document's URL, like the worklist's
+  const cardUrl = slug => {                 // built off THIS document's URL
     const u = new URL("preview.html", location.href); u.hash = "";
     u.searchParams.set("key", slug);
     return u.href;
@@ -577,8 +566,8 @@ if (LIVE && !DETACHED) (function(){
                 + `would settle them. Opens in a new tab.</div>`;
     pill.addEventListener("click", e => {
       e.stopPropagation();
-      const wipPanel = document.getElementById("wipPanel");
-      if (wipPanel) wipPanel.hidden = true;   // one panel open at a time
+      const deskPanel = document.getElementById("deskPanel");
+      if (deskPanel) deskPanel.hidden = true;   // one panel open at a time
       panel.hidden = !panel.hidden;
     });
     document.addEventListener("click", e => {
@@ -587,79 +576,62 @@ if (LIVE && !DETACHED) (function(){
   }).catch(() => {});                        // a server without the route: stay hidden
 })();
 
-// Both viewer faces remove through the same server acknowledgement and client state.
-async function removeFromReadingList(k){
-  const response = await fetch("active", {method: "POST",
-    body: JSON.stringify({citekey: k, active: false})});
-  if (!response.ok) throw new Error("Could not remove the paper from the reading list.");
+// ── the desk: validating a paper (serve only), and the board's "desk" pill ────────────────────
+// Both viewer faces validate through this one function: POST /validate with the pass the viewer
+// SHOWED — so a pass an agent raised since the page loaded is never validated unseen, the paper
+// just stays on the desk — then settle in place. No reload: validating changes a status, not the
+// board's cards or arrows, so the card's `.vstat` swaps and a `deskchange` event tells the desk
+// pill and the app to recount. Throws on any failure; the caller says so and leaves the control
+// live for a retry.
+async function validatePaper(k, n){
+  const response = await fetch("validate", {method: "POST",
+    body: JSON.stringify({citekey: k, pass: n})});
+  if (!response.ok) throw new Error(`Could not validate ${k}.`);
   const result = await response.json();
-  if (!result.ok) throw new Error("Could not remove the paper from the reading list.");
-  GRAPH.active = (GRAPH.active || []).filter(key => key !== k);
-  ACTIVE.delete(k);
-  syncLanding();
-  redraw();
-  dispatchEvent(new CustomEvent("readinglistchange", {detail: {removed: k}}));
+  if (!result.ok) throw new Error(`Could not validate ${k}.`);
+  PAPERS[k].validated = result.validated;
+  for (const el of document.querySelectorAll(`.card[data-key="${CSS.escape(k)}"] .vstat`))
+    el.outerHTML = vstat(PAPERS[k]);
+  dispatchEvent(new CustomEvent("deskchange", {detail: {key: k}}));
 }
 
-// LIVE-gated: a static `lit build` carries no active list, so the pill stays hidden.
-if (LIVE && !DETACHED) (function(){
-  const pill = document.getElementById("wip");
-  const inProg = (GRAPH.active || []).filter(k => PAPERS[k] && PAPERS[k].cur);
-  if (!inProg.length) return;
-  pill.innerHTML = `reading list · <span class="n">${inProg.length}</span>`;
-  pill.hidden = false;
-
-  const panel = document.getElementById("wipPanel");
-  const STAGE = ["stub","ingested","skeleton","contextualized","full"];
-  const stage = k => { const p = PAPERS[k].pass == null ? 0 : PAPERS[k].pass;
-                       return `maturity ${p}/4 · ${STAGE[p] || ""}`; };
-  // A row IS a paper you asked to keep in view — same gesture a search result or a library row
-  // already makes (gotoPaper): close the panel, find the paper on the board (minting its card if
-  // it isn't already sitting there), scroll to it, flash it. Nothing here opens a window or spawns
-  // anything; reading the paper from there is the same hover/click the board always offers.
-  function enter(k){
-    panel.hidden = true;
-    gotoPaper(k);
+// The pill lists the desk in both builds — it is derived from the payload (03-card.js) — and only
+// a served page offers the ✓ that validates. A row finds the paper on the board (gotoPaper), the
+// same gesture a search result or a library row makes.
+if (!DETACHED) (function(){
+  const pill = document.getElementById("desk");
+  const panel = document.getElementById("deskPanel");
+  if (!pill || !panel || !Object.values(PAPERS).some(p => p.cur && !p.aim && !p.narr)) return;
+  const pending = new Set();
+  const status = k => { const p = PAPERS[k], m = curPass(p);
+    return p.validated == null ? `new · curated ${m} ${passLabel(m)}` : `validated ${p.validated} · curated ${m}`; };
+  const row = k => `<div class="wp-row" data-k="${k}" title="show ${k} on the board">`
+    + `${passCircle(PAPERS[k].validated || 0)}<span class="ckey">${k}</span>`
+    + `<span class="stage">${status(k)}</span>`
+    + (LIVE ? `<button class="wp-done" data-done="${k}"${pending.has(k) ? " disabled" : ""}`
+      + ` title="validate ${k} at ${curPass(PAPERS[k])} · ${passLabel(curPass(PAPERS[k]))}">✓</button>` : "")
+    + `</div>`;
+  function paint(){
+    const d = deskKeys(), n = d.new.length + d.changed.length;
+    pill.innerHTML = `desk · <span class="n">${n}</span>`;
+    pill.hidden = false;
+    panel.innerHTML = `<div class="wp-hd">desk</div>`
+      + (d.new.length ? `<div class="wp-sub">new · never validated</div>` + d.new.map(row).join("") : "")
+      + (d.changed.length ? `<div class="wp-sub">changed · curation moved</div>` + d.changed.map(row).join("") : "")
+      + (n ? `<div class="wp-note">click a row to find it on the board`
+           + (LIVE ? `; ✓ validates it at its current pass, right-click a card for a lower one` : "") + `</div>`
+           : `<div class="wp-note">nothing on the desk: every paper is validated at its current pass</div>`)
+      + (LIVE ? `<div class="wp-note wp-offline">validating ${OFFLINE_WHY}</div>` : "");
   }
-  // ── done: off the reading list, back onto the board ──────────────────────────────────
-  // Settled IN PLACE, with no reload. This direction is purely additive — the paper's card joins
-  // the curated column and nothing already drawn stops being true — so there is nothing for a
-  // reload to settle. The other direction, `moveToCurate` in 10-pdf.js, SUBTRACTS a paper the
-  // board may already hold arrows into, and still reloads; see the note there.
-  //
-  // It reloaded here too, once, and that alone read as a stuck button. `/` builds the graph
-  // payload inline (serve.py's do_GET), writing config.toml invalidates the server's payload
-  // cache, and a navigation is not committed until the first response byte — so the browser sat
-  // on the OLD page, panel open, row still there, ✓ still live, for the whole rebuild. Sixteen
-  // seconds of it on the real library, before ruamel.yaml.clib and graph.py's parse cache.
-  // Clicking the ✓ again then POSTed again, which invalidated the rebuild already in flight and
-  // started the wait over — so the one gesture that looked like it might help was the one that
-  // hurt. `btn.disabled` shuts that door; not reloading removes the wait it was a door to.
-  function dropRow(k){
-    const row = panel.querySelector(`.wp-row[data-k="${k}"]`);    // citekeys are [A-Za-z0-9]+
-    if (row) row.remove();
-    const n = panel.querySelectorAll(".wp-row").length;
-    if (!n) { panel.hidden = true; pill.hidden = true; return; }  // an empty list has no pill, as at boot
-    pill.innerHTML = `reading list · <span class="n">${n}</span>`;
+  paint();
+  addEventListener("deskchange", paint);
+  async function validate(k){
+    if (OFFLINE.on || pending.has(k)) return;   // hidden offline (css/14-offline.css)
+    pending.add(k); paint();
+    try { await validatePaper(k, curPass(PAPERS[k])); }
+    catch { alert(`Could not validate ${k}. Please try again.`); }
+    finally { pending.delete(k); paint(); }
   }
-  addEventListener("readinglistchange", e => dropRow(e.detail.removed));
-  async function returnToGraph(k, btn){
-    if (OFFLINE.on) return;                   // hidden offline (css/14-offline.css), see the note
-    if (btn) btn.disabled = true;
-    try {
-      await removeFromReadingList(k);
-    } catch { if (btn) btn.disabled = false; alert("server unreachable — is lit serve running?"); }
-  }
-
-  panel.innerHTML = `<div class="wp-hd">reading list</div>` + inProg.map(k =>
-    `<div class="wp-row" data-k="${k}" title="show ${k} on the board">`
-    + `${passCircle(PAPERS[k].pass || 0)}<span class="ckey">${k}</span>`
-    + `<span class="stage">${stage(k)}</span>`
-    + `<button class="wp-done" data-done="${k}" title="done: return ${k} to the graph">✓</button>`
-    + `</div>`).join("")
-    + `<div class="wp-note">click a row to find it on the board</div>`
-    + `<div class="wp-note wp-offline">returning a paper to the graph ${OFFLINE_WHY}</div>`;
-
   pill.addEventListener("click", () => {
     const aimPanel = document.getElementById("aimPanel");
     if (aimPanel) aimPanel.hidden = true;     // one panel open at a time
@@ -667,13 +639,13 @@ if (LIVE && !DETACHED) (function(){
   });
   panel.addEventListener("click", e => {
     const done = e.target.closest(".wp-done");
-    if (done) { e.stopPropagation(); return returnToGraph(done.dataset.done, done); }
-    const r = e.target.closest(".wp-row"); if (r) enter(r.dataset.k);
+    if (done) { e.stopPropagation(); return validate(done.dataset.done); }
+    const r = e.target.closest(".wp-row"); if (r) { panel.hidden = true; gotoPaper(r.dataset.k); }
   });
   addEventListener("keydown", e => { if (e.key === "Escape") panel.hidden = true; });
   // click outside an open panel dismisses it (capture so it runs before the board's own handler)
   addEventListener("click", e => {
-    if (!panel.hidden && !e.target.closest("#wipPanel,#wip")) panel.hidden = true;
+    if (!panel.hidden && !e.target.closest("#deskPanel,#desk")) panel.hidden = true;
   }, true);
 })();
 // a click on empty board space (not a card or broad node) thaws any pinned isolation.

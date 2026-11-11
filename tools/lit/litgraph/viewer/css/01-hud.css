@@ -67,14 +67,14 @@
      exactly one of them. A row carries no border of its own, so what shows is the ring. */
   .slice.found{animation:foundflash 1.7s ease-out}
 
-  /* curation-in-progress review lens (serve only) */
-  #hud .wip{display:inline-flex;align-items:center;gap:6px;cursor:pointer;
+  /* the HUD's count pills: the desk, the programme index */
+  #hud .hpill{display:inline-flex;align-items:center;gap:6px;cursor:pointer;
     font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#e7cfa6;
     border:1px solid rgba(231,207,166,.42);border-radius: 0;padding:3px 10px;
     background:rgba(181,130,47,.15)}
-  #hud .wip:hover{background:rgba(181,130,47,.28);border-color:rgba(231,207,166,.7)}
-  #hud .wip .n{color:#fff;font-weight:600}
-  #hud .wip[hidden]{display:none}
+  #hud .hpill:hover{background:rgba(181,130,47,.28);border-color:rgba(231,207,166,.7)}
+  #hud .hpill .n{color:#fff;font-weight:600}
+  #hud .hpill[hidden]{display:none}
 
   /* collapsible PDF viewer toggle (serve only, browse view) */
   #hud .pdfbtn{display:inline-flex;align-items:center;gap:6px;cursor:pointer;font:inherit;
@@ -93,7 +93,7 @@
 #hud #search { background: var(--hm-raised); color: var(--hm-ink); border: 1px solid var(--hm-divider); min-height: 32px; }
 #hud #search::placeholder { color: var(--hm-dim); }
 #hud #search:focus { border-color: var(--hm-home); outline: 2px solid var(--hm-home); }
-#hud .pdfbtn, #hud .wip { color: var(--hm-home-text); background: var(--hm-home-soft); border-color: var(--hm-home-line); }
-#hud .wip .n { color: inherit; }
+#hud .pdfbtn, #hud .hpill { color: var(--hm-home-text); background: var(--hm-home-soft); border-color: var(--hm-home-line); }
+#hud .hpill .n { color: inherit; }
 #hud .pdfbtn.on { background: var(--hm-home); color: var(--hm-on-home); border-color: var(--hm-home); }
-@media (pointer: coarse) { #hud button, #hud #search, #hud .pdfbtn, #hud .wip { min-height: 44px; } }
+@media (pointer: coarse) { #hud button, #hud #search, #hud .pdfbtn, #hud .hpill { min-height: 44px; } }

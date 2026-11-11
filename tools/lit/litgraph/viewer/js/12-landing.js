@@ -204,11 +204,11 @@ function syncLanding(){
     const el=document.getElementById(`card-0:${k}`); if(el) el.remove();
   }
   for(const k of perm){                              // ORDER's ranking — never resorted
-    if(ACTIVE.has(k)||c.keys.has(k)) continue;        // reading-list papers stay off the column
+    if(c.keys.has(k)) continue;
     addPaper(0,k);
   }
   for(const k of landedStuck){                       // a stub named by hand isn't in landingKeys()
-    if(ACTIVE.has(k)||c.keys.has(k)||!(PAPERS[k]||STUBS[k])) continue;
+    if(c.keys.has(k)||!(PAPERS[k]||STUBS[k])) continue;
     addPaper(0,k);
   }
   // Say what each card is doing here. Not "why is it on screen" any more — a curated paper needs no

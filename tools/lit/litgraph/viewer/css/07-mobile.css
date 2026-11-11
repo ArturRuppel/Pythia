@@ -3,7 +3,7 @@
      anyway); input affordances key off (hover:none)+(pointer:coarse). The three unconditional
      clamps below are desktop-safe (they only bite when a panel would overflow the viewport). */
   #tip{max-width:calc(100vw - 16px)}
-  #wipPanel,#aimPanel{max-width:calc(100vw - 16px)}
+  #deskPanel,#aimPanel{max-width:calc(100vw - 16px)}
   #board{overscroll-behavior-x:contain}          /* no back/forward-swipe hijack from the h-scroll */
   .pw-body{overscroll-behavior:contain}          /* nested page-scroll doesn't chain to the board */
 
@@ -12,7 +12,7 @@
     #stage{gap:22px;padding:calc(var(--hud-h) / var(--bz) + 22px) max(12px, calc(50vw / var(--bz) - var(--col)/2)) 80px}
     #hud{gap:8px 10px;flex-wrap:wrap}
     #hud .widthctl{display:none}                 /* column ≈ full width — slider is moot (and ate swipes) */
-    #wipPanel,#aimPanel{left:8px;right:8px;width:auto;max-height:60vh}
+    #deskPanel,#aimPanel{left:8px;right:8px;width:auto;max-height:60vh}
   }
   @media (hover:none) and (pointer:coarse){
     /* the movable/resizable quote window becomes a near-fullscreen sheet: no drag, no resize,
@@ -25,14 +25,14 @@
     .pw-find{padding:5px 4px 5px 8px}
     .pw-find input{font-size:16px;padding:4px 7px}
     .pw-fb{padding:6px 9px;font-size:13px}
-    .card,.slice,.slices .sgrp,.slices .sbar,.cabsx,.card.stack,.pw-tool,.pw-x,#hud .wip,
-    #wipPanel .wp-row,#aimPanel .ap-row,#libFacets .tp-chip,
+    .card,.slice,.slices .sgrp,.slices .sbar,.cabsx,.card.stack,.pw-tool,.pw-x,#hud .hpill,
+    #deskPanel .wp-row,#aimPanel .ap-row,#libFacets .tp-chip,
     .bn{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
     .slice{padding:7px 6px}                       /* fatter tap targets */
     .slices .sgrp{padding-top:9px;margin:9px 0 4px}
     .slices .sbar{padding:7px 0}                 /* the two folds a finger opens the card through */
     .cabsx{padding-top:4px;padding-bottom:11px}
-    #wipPanel .wp-row{padding:11px 10px}
+    #deskPanel .wp-row{padding:11px 10px}
     /* the aim rows wrap on a narrow screen: title on one line, the flag beneath it */
     #aimPanel .ap-row{padding:12px 10px;flex-wrap:wrap;gap:2px 8px}
     #aimPanel .ap-row .flag{margin-left:0;flex-basis:100%}

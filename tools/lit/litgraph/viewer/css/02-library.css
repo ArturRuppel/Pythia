@@ -13,7 +13,7 @@
      facet rail, which is the idiom every reference manager already taught the reader. */
   #libraryPane{display:none}
   body.library #board,body.library #searchResults,
-  body.library #tip,body.library #ctxmenu,body.library #wipPanel,
+  body.library #tip,body.library #ctxmenu,body.library #deskPanel,
   body.library #aimPanel{display:none!important}
   body.library #libraryPane{display:flex;position:fixed;left:0;right:0;bottom:0;
     top:var(--hud-top);z-index:20;background:var(--bg);transition:top .18s ease}
@@ -91,7 +91,8 @@
      is unconditionally visible, and it lands in a column the eye can run down. */
   #libScroll .lr{height:76px;box-sizing:border-box;display:flex;align-items:center;gap:11px;
     padding:0 20px;border-bottom:1px solid var(--line);cursor:pointer;background:var(--panel)}
-  #libScroll .lr-ind{flex:0 0 16px;display:flex;align-items:center;justify-content:center}
+  #libScroll .lr-ind{flex:0 0 46px;display:flex;align-items:center;justify-content:center}
+  #libScroll .lr-ind .vstat{flex-direction:column;gap:3px}   /* the marker under the pie */
   #libScroll .lr-body{flex:1;min-width:0;display:flex;flex-direction:column;
     justify-content:center;gap:3px}
   /* the handoff to the board is its own button on the far right, because the row itself now
@@ -154,22 +155,24 @@
     #libBar{padding:9px 12px}
   }
 
-  #wipPanel{position:fixed;z-index:45;top:44px;left:16px;width:300px;max-height:72vh;overflow:auto;
+  #deskPanel{position:fixed;z-index:45;top:44px;left:16px;width:300px;max-height:72vh;overflow:auto;
     background:var(--panel);border:1px solid var(--line);border-radius: 0;
     box-shadow:0 12px 34px rgba(28,27,34,.24);padding:6px}
-  #wipPanel[hidden]{display:none}
-  #wipPanel .wp-hd{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--faint);
+  #deskPanel[hidden]{display:none}
+  #deskPanel .wp-hd{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--faint);
     padding:6px 8px 5px}
-  #wipPanel .wp-row{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius: 0;cursor:pointer}
-  #wipPanel .wp-row:hover{background:var(--bg)}
-  #wipPanel .wp-row .ckey{font-size:12px;color:var(--ink)}
-  #wipPanel .wp-row .stage{margin-left:auto;font-size:11px;color:var(--faint);text-transform:uppercase;letter-spacing:.5px}
-  /* per-row "finish" — return the paper to the graph without opening its windows */
-  #wipPanel .wp-row .wp-done{flex:0 0 auto;font:inherit;font-size:11px;line-height:1;padding:3px 6px;
+  #deskPanel .wp-row{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius: 0;cursor:pointer}
+  #deskPanel .wp-row:hover{background:var(--bg)}
+  #deskPanel .wp-row .ckey{font-size:12px;color:var(--ink)}
+  #deskPanel .wp-row .stage{margin-left:auto;font-size:11px;color:var(--faint);text-transform:uppercase;letter-spacing:.5px}
+  /* per-row ✓ — validate the paper at its current pass (serve only) */
+  #deskPanel .wp-row .wp-done{flex:0 0 auto;font:inherit;font-size:11px;line-height:1;padding:3px 6px;
     border:1px solid transparent;border-radius: 0;background:none;color:var(--faint);cursor:pointer}
-  #wipPanel .wp-row:hover .wp-done{color:var(--dim);border-color:var(--line)}
-  #wipPanel .wp-row .wp-done:hover{color:var(--grounded);border-color:var(--grounded)}
-  #wipPanel .wp-note{padding:6px 8px 2px;font-size:11px;line-height:1.5;color:var(--faint)}
+  #deskPanel .wp-row:hover .wp-done{color:var(--dim);border-color:var(--line)}
+  #deskPanel .wp-row .wp-done:hover{color:var(--grounded);border-color:var(--grounded)}
+  #deskPanel .wp-note{padding:6px 8px 2px;font-size:11px;line-height:1.5;color:var(--faint)}
+  #deskPanel .wp-sub{padding:8px 8px 3px;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--dim)}
+  #deskPanel .wp-row .wp-done:disabled{opacity:.5;cursor:wait}
 
   /* the programme index — the same panel shape as the worklist, but its rows are links to
      an aim's card (/preview.html?key=@slug) rather than an in-place transition */

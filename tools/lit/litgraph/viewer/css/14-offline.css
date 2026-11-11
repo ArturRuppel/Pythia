@@ -19,12 +19,12 @@
   @media (pointer:coarse){ #offline:not(.folded){min-height:32px} }
 
   /* offline: the moves that write are hidden or disabled, each with its reason beside it */
-  #wipPanel .wp-offline{display:none}
-  body.offline #wipPanel .wp-offline{display:block;color:var(--hm-warn)}
-  body.offline #wipPanel .wp-done{display:none}
+  #deskPanel .wp-offline{display:none}
+  body.offline #deskPanel .wp-offline{display:block;color:var(--hm-warn)}
+  body.offline #deskPanel .wp-done{display:none}
   #ctxmenu button:disabled{color:var(--faint);cursor:not-allowed;background:transparent}
   #ctxmenu .ctx-why{padding:2px 10px 6px;font-size:11px;line-height:1.4;color:var(--hm-warn);max-width:240px}
-  body.offline #app button.pa-reading-remove:disabled{cursor:not-allowed}
+  body.offline #app button.pa-vbtn:disabled,body.offline #app button.pa-vlevel:disabled{cursor:not-allowed}
   #app .pa-offline-why{display:block;font-size:13px;color:var(--hm-warn)}
 
   /* the PDF pane without a server: the cached PDF in the browser's own viewer */

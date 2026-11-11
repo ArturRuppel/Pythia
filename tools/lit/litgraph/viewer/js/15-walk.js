@@ -44,7 +44,9 @@ const WALK = !DETACHED ? (function(){
       for (const k of t.papers || []) (topicsOf[k] = topicsOf[k] || []).push(slug);
 
     for (const [key, p] of Object.entries(PAPERS)) {
-      N[key] = {id: key, t: "paper", key, year: p.year, pass: p.pass || 0,
+      // `pass` here is the VALIDATED pass — the status the viewer shows (the desk, SCHEMA §4)
+      N[key] = {id: key, t: "paper", key, year: p.year, pass: p.validated || 0, cpass: curPass(p),
+                vnew: deskStatus(p) === "new",
                 title: p.title || "", authors: p.authors || [], type: p.type || "original",
                 cur: !!p.cur, topics: topicsOf[key] || [], slices: [], wall: []};
       KEYS.push(key);
@@ -236,7 +238,7 @@ const WALK = !DETACHED ? (function(){
       list.map(k => {
         const c = boardCost(k).cards;
         return `<div class="wr-row${FOCUS === k ? " on" : ""}${c > 30 ? " hot" : ""}" data-key="${esc(k)}">
-          ${passCircle(N[k].pass)}<span class="k">${esc(k)}</span><span class="n">${c}</span></div>`;
+          ${PAPERS[k] && PAPERS[k].cur ? vstat(PAPERS[k]) : passCircle(0)}<span class="k">${esc(k)}</span><span class="n">${c}</span></div>`;
       }).join("") +
       `<div class="wr-hd">broad · ${BROAD_IDS.length}</div>` +
       BROAD_IDS.slice().sort((a, b) => N[a].label.localeCompare(N[b].label))
@@ -248,7 +250,7 @@ const WALK = !DETACHED ? (function(){
       const au = n.authors.length ? shortAuthLine(n.authors) : "";
       return `<div class="wk-focus"><div class="fk">
         <span class="kind">${esc(n.type)}</span><span class="key">${esc(n.key)}</span>
-        <span class="yr">${n.year || ""} · pass ${n.pass}/4 · ${n.slices.length} slices · ${n.wall.length} sources</span>
+        <span class="yr">${n.year || ""} · ${n.vnew ? "new" : `validated ${n.pass}/4`}${n.cpass > n.pass || n.vnew ? ` · curated ${n.cpass}` : ""} · ${n.slices.length} slices · ${n.wall.length} sources</span>
         </div><div class="ttl">${esc(n.title)}</div>${au ? `<div class="auth">${au}</div>` : ""}</div>`;
     }
     if (n.t === "broad")

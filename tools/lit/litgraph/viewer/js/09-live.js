@@ -29,11 +29,6 @@ function goOffline(){
   document.body.classList.add("offline");
   dispatchEvent(new Event("offlinechange"));
 }
-// The move (delta §3): papers on the in-progress worklist (the reading list) are pulled OUT of
-// the browse view's landing column — they live off-board until named by the search box, a
-// library row, or a click in the WIP panel (14-search.js), which is where the reading list is
-// actually browsed.
-const ACTIVE = new Set(GRAPH.active || []);
 // The collapsible PDF viewer lives in the browse view only — a detached window has its own
 // full-bleed pane instead.
 const pdfToggle = document.getElementById("pdfToggle");

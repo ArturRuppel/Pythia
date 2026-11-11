@@ -358,51 +358,34 @@ if (!DETACHED) (function(){
   }, {passive: true});
 })();
 
-// ── the move: right-click a curated card → curate it (serve, browse view) ─────────────────
-// "Curate this paper" adds the citekey to [curation] active (POST /active); the paper then
-// leaves the browse view (filtered at boot, above) and lives in the in-progress set. Curated-
-// only for now — a stub has no local subgraph to curate. A reload settles the graph without it.
+// ── right-click a curated card → Validate it (serve, browse view) ─────────────────────────────
+// The desk (SCHEMA §4): Validate records the paper's current pass as the one the owner has
+// validated (POST /validate, validatePaper in 14-search.js); the levels below it are there for a
+// paper read less deeply than curation ran. It settles in place — the card's status swaps, the
+// desk pill recounts — with nothing to reload: validating adds or removes no card or arrow.
+// Offline, the menu still opens, its entries disabled with the reason beside them.
 const ctxmenu = document.getElementById("ctxmenu");
 function hideCtxMenu(){ ctxmenu.style.display = "none"; ctxmenu.onclick = null; }
-function showCurateMenu(e, key){
+function showDeskMenu(e, key){
   e.preventDefault();
-  ctxmenu.innerHTML = OFFLINE.on
-    ? `<button data-act="curate" disabled title="${OFFLINE_WHY}">Curate this paper</button>`
-      + `<div class="ctx-why">${OFFLINE_WHY}</div>`
-    : `<button data-act="curate">Curate this paper</button>`;
+  const p = PAPERS[key], m = curPass(p), v = p.validated;
+  const off = OFFLINE.on ? ` disabled title="${OFFLINE_WHY}"` : "";
+  const item = (n, text) => `<button data-v="${n}"${off || (n === v ? " disabled" : "")}>${text}</button>`;
+  let h = `<div class="ctx-hd">${v == null ? "new · never validated" : `validated ${v} · ${passLabel(v)}`}</div>`
+    + item(m, v === m ? `Validated · ${m} ${passLabel(m)}` : `Validate · ${m} ${passLabel(m)}`);
+  if (m > 0) h += `<div class="ctx-sub">or at a lower level</div>`
+    + Array.from({length: m}, (_, i) => m - 1 - i).map(n => item(n, `${n} ${passLabel(n)}`)).join("");
+  if (OFFLINE.on) h += `<div class="ctx-why">${OFFLINE_WHY}</div>`;
+  ctxmenu.innerHTML = h;
   ctxmenu.style.display = "block";
-  const w = ctxmenu.offsetWidth || 150, h = ctxmenu.offsetHeight || 34;
+  const w = ctxmenu.offsetWidth || 150, ht = ctxmenu.offsetHeight || 34;
   ctxmenu.style.left = Math.min(e.clientX, innerWidth - w - 8) + "px";
-  ctxmenu.style.top = Math.min(e.clientY, innerHeight - h - 8) + "px";
+  ctxmenu.style.top = Math.min(e.clientY, innerHeight - ht - 8) + "px";
   ctxmenu.onclick = ev => {
     const b = ev.target.closest("button"); if (!b || b.disabled) return;
     hideCtxMenu();
-    if (b.dataset.act === "curate") moveToCurate(key);
+    validatePaper(key, +b.dataset.v).catch(() => alert(`Could not validate ${key}. Please try again.`));
   };
-}
-// This direction still reloads, unlike its opposite (`returnToGraph` in 14-search.js, which
-// settles in place). Adding a paper to the reading list SUBTRACTS it from the board: its card
-// must leave the landing column, and every arrow drawn into or out of it stops being true. The
-// reload settles all of that at once, and a card can be reached from more places than the column
-// (a drilled column, a source wall, the walk) than an in-place teardown could honestly chase.
-//
-// What the reload costs is now bounded. It was 16 s on the real library — `/` builds the graph
-// payload inline, and writing config.toml invalidates the server's payload cache — which is why
-// this had to be re-entrancy-guarded rather than merely left alone: a second click POSTs again,
-// invalidates the rebuild already in flight, and starts the wait over. ruamel.yaml.clib plus
-// graph.py's per-file parse cache took the rebuild to ~1.5 s; `moving` keeps the second click
-// from undoing even that.
-let moving = false;
-async function moveToCurate(key){
-  if (OFFLINE.on) return;                      // the menu offers it disabled; belt and braces
-  if (moving) return;                          // one move per reload — a second POST would
-  moving = true;                               // invalidate the rebuild this one is waiting on
-  try {
-    const r = await fetch("active", {method: "POST",
-      body: JSON.stringify({citekey: key, active: true})}).then(r => r.ok ? r.json() : null);
-    if (r && r.ok) location.reload();          // the paper leaves the graph; reload settles the view
-    else { moving = false; alert(`could not move ${key} into curation`); }
-  } catch { moving = false; alert("server unreachable — is lit serve running?"); }
 }
 addEventListener("click", hideCtxMenu);          // any left-click dismisses the menu
 addEventListener("scroll", hideCtxMenu, true);   // scrolling the board dismisses it too

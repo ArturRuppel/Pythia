@@ -74,8 +74,9 @@ def test_evidence_navigation(scenario):
     navigation = source[source.index("  function saveNav("):source.index("  function remember(")]
     harness = r"""
     const assert = require('node:assert/strict');
-    const S = {tab:'library', stacks:{library:[], topics:[], reading:[], search:[]},
-      future:{library:[], topics:[], reading:[], search:[]}, q:'', pos:{}};
+    const TABS = ['library', 'topics', 'desk', 'search'];
+    const S = {tab:'library', stacks:{library:[], topics:[], desk:[], search:[]},
+      future:{library:[], topics:[], desk:[], search:[]}, q:'', pos:{}};
     const entries = [], events = {};
     const history = {
       pushState: s => entries.push(structuredClone(s)),

@@ -1,7 +1,7 @@
 // ── the Pythia app: the touch reading view (iPhone + iPad) ──────────────────────────────────
 // A second face on the same GRAPH (Claude Design "Logo mark refinement round 2", the tab-bar
-// variant). Reading-list changes share state with the board; four tabs
-// (Library · Topics · Reading · Search), each tab its own push stack of screens (a paper, a
+// variant). Validating a paper (the desk, SCHEMA §4) shares state with the board; four tabs
+// (Library · Topics · Desk · Search), each tab its own push stack of screens (a paper, a
 // slice, a broad node, a stub, a stance ledger, a collection). Collections (SCHEMA §10) head the
 // Topics tab and are found by title in Search. The board stays one tap away — the Board
 // button here, the "app" button on the HUD — and the choice sticks (localStorage).
@@ -30,9 +30,17 @@
   const person = n => { const i = n.indexOf(", "); return i < 0 ? n : `${n.slice(i + 2)} ${n.slice(0, i)}`; };
   // The paper page shows the whole byline: it is the one place you go to see who wrote it.
   const authors = a => (a && a.length) ? a.map(x => person(x[0])).join(", ") : "";
-  const PASS = ["Uncurated", "Bibliography", "Skeleton", "Contextualized", "Curated"];
+  const PASS = [0, 1, 2, 3, 4].map(passLabel);   // ingested · abstract · intro+disc · results · methods
   const pm = (p, lg) => `<span class="pa-pm${lg ? " lg" : ""}">`
     + [1, 2, 3, 4].map(i => `<i class="${i <= (p || 0) ? "on" : ""}"></i>`).join("") + `</span>`;
+  // A paper's status everywhere in the app is the VALIDATED pass (the desk, SCHEMA §4): the meter
+  // shows it, and a quiet marker says when the owner has not caught up — "New" if never validated,
+  // "curated M" when curation ran ahead.
+  const vst = (p, lg) => {
+    const v = p.validated, m = curPass(p);
+    return `<span class="pa-vst">${pm(v, lg)}${v == null ? `<span class="pa-vnew">New</span>`
+      : m > v ? `<span class="pa-ahead">curated ${m}</span>` : ""}</span>`;
+  };
   const CHEV = `<svg class="pa-chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>`;
   const MARK = `<svg viewBox="0 0 48 48"><g fill="#f3f3f4"><rect x="11" y="29" width="26" height="3"/>`
     + `<rect x="8" y="10" width="32" height="7"/><path d="M12 17h5l-6 23H6zM31 17h5l6 23h-5z"/>`
@@ -123,11 +131,11 @@
   const cCur = c => COLLECTIONS[c].papers.filter(k => SL[k]).length;
 
   // ── state ──
-  const TABS = ["library", "topics", "reading", "search"];
+  const TABS = ["library", "topics", "desk", "search"];
   const S = {
-    tab: "library", stacks: { library: [], topics: [], reading: [], search: [] },
-    scope: "curated", sort: "new", kind: "all", absOpen: false, sheet: false,
-    q: "", more: {}, pos: {}, future: { library: [], topics: [], reading: [], search: [] },
+    tab: "library", stacks: { library: [], topics: [], desk: [], search: [] },
+    scope: "curated", sort: "new", kind: "all", absOpen: false, sheet: false, deskColl: "",
+    q: "", more: {}, pos: {}, future: { library: [], topics: [], desk: [], search: [] },
   };
   const cur = () => { const st = S.stacks[S.tab]; return st[st.length - 1] || null; };
   let recent = []; try { recent = JSON.parse(store.get("pythia.recent") || "[]"); } catch {}
@@ -181,7 +189,8 @@
   }
   addEventListener("popstate", e => {
     const nav = e.state && e.state.pythia;
-    if (!nav || !nav.stacks) return;
+    // an entry saved by an app from before the desk (other tab names) is not ours to restore
+    if (!nav || !nav.stacks || !TABS.includes(nav.tab) || !TABS.every(t => nav.stacks[t] && nav.future && nav.future[t])) return;
     keepPos();
     const oldTab = S.tab, oldTrail = [...S.stacks[S.tab], ...S.future[S.tab]];
     S.tab = nav.tab; S.stacks = structuredClone(nav.stacks); S.future = structuredClone(nav.future);
@@ -205,7 +214,7 @@
   const route = n => n.t === "slice" ? { t: "slice", pk: n.pk, id: n.id } : n.t === "paper" ? { t: "paper", key: n.key }
     : n.t === "stub" ? { t: "stub", key: n.key } : { t: "broad", slug: n.slug };
   function titleOf(r){
-    if (!r) return { library: "Library", topics: "Topics", reading: "Reading", search: "Search" }[S.tab];
+    if (!r) return { library: "Library", topics: "Topics", desk: "Desk", search: "Search" }[S.tab];
     if (r.t === "paper" || r.t === "stub") return r.key + (r.focus ? ` · ${r.focus}` : "");
     if (r.t === "slice") return `${r.pk} · ${r.id}`;
     if (r.t === "ledger") return "Stance";
@@ -241,31 +250,45 @@
       + `<span class="pa-auth-less">Show fewer authors</span></span></summary>`
       + `<div class="pa-auth">${tx(names.join(", "))}</div></details>`;
   }
-  const removingReading = new Set();
-  function readingRemoveButton(k){
-    if (!LIVE || !(GRAPH.active || []).includes(k)) return "";
-    if (OFFLINE.on) return `<button class="pa-btn pa-reading-remove" disabled>Remove from reading list</button>`
-      + `<span class="pa-offline-why">Removing ${OFFLINE_WHY}.</span>`;
-    return `<button class="pa-btn pa-reading-remove" ${removingReading.has(k) ? "disabled" : ""}
-      ${act(() => removeReading(k))}>${removingReading.has(k) ? "Removing…" : "Remove from reading list"}</button>`;
+  // ── validate: the owner's action on a paper (serve only) ──
+  // Sets `validated` to the pass this page SHOWS (or a lower level picked below it), through the
+  // board's validatePaper (14-search.js). While the POST is out the control is disabled and says
+  // so; on success the paper leaves the desk in place, with no reload; on failure it says so and
+  // stays live for a retry. Offline the control stays where it was, disabled, with its reason.
+  const validating = new Set();
+  function validateControls(k, quiet = false){   // quiet: the list already says why, once
+    if (!LIVE) return "";
+    const p = PAPERS[k], m = curPass(p), v = p.validated, busy = validating.has(k);
+    const lower = Array.from({ length: m }, (_, i) => m - 1 - i).filter(n => n !== v);
+    const off = OFFLINE.on;
+    let h = `<span class="pa-validate">`;
+    if (deskStatus(p)) h += `<button class="pa-btn pa-vbtn" ${off || busy ? "disabled" : act(() => validate(k, m))}>`
+      + `${busy ? "Validating…" : `Validate · ${m} ${PASS[m]}`}</button>`;
+    if (lower.length) h += `<details class="pa-vpick"><summary>${deskStatus(p) ? "Or validate at a lower level" : "Validate at a lower level"}</summary><span class="pa-vlevels">`
+      + lower.map(n => `<button class="pa-vlevel" ${off || busy ? "disabled" : act(() => validate(k, n))}>${n} · ${PASS[n]}</button>`).join("")
+      + `</span></details>`;
+    if (off && !quiet && (deskStatus(p) || lower.length)) h += `<span class="pa-offline-why">Validating ${OFFLINE_WHY}.</span>`;
+    return h + `</span>`;
   }
-  async function removeReading(k){
-    if (removingReading.has(k)) return;
-    removingReading.add(k);
+  async function validate(k, n){
+    if (validating.has(k) || OFFLINE.on) return;
+    validating.add(k);
     render(scroller().scrollTop);
-    try { await removeFromReadingList(k); }
-    catch { alert("Could not remove the paper from the reading list. Please try again."); }
-    finally { removingReading.delete(k); render(scroller().scrollTop); }
+    try { await validatePaper(k, n); }
+    catch { alert(`Could not validate ${k}. Please try again.`); }
+    finally { validating.delete(k); render(scroller().scrollTop); }
   }
+  // the board validated a paper (or this app did): the library's index caches the status
+  addEventListener("deskchange", () => { IDX = null; if (document.body.classList.contains("app")) render(scroller() ? scroller().scrollTop : 0); });
 
-  function paperRow(k, meta, readingControl = false){
+  function paperRow(k, meta, controls = ""){
     const p = PAPERS[k];
     const c = kd => p.slices.filter(s => s.kind === kd).length;
     return `<div class="pa-row"><button class="pa-row-open" ${act(() => push({ t: "paper", key: k }))}><span class="pa-rtop">`
-      + `<span class="pa-key">${tx(k)}</span><span class="pa-yr">${p.year || ""}</span>${pm(p.pass)}</span>`
+      + `<span class="pa-key">${tx(k)}</span><span class="pa-yr">${p.year || ""}</span>${vst(p)}</span>`
       + `<span class="pa-rtitle">${tx(p.title || k)}</span></button>` + rowAuthors(p.authors)
       + (S.tab === "library" && S.sort.startsWith("updated") && p.curation_updated ? `<span class="pa-meta">Curation record updated ${tx(new Date(p.curation_updated * 1000).toLocaleDateString())}</span>` : "")
-      + `<span class="pa-meta">${tx(meta || `${plural(c("claim"), "claim")} · ${plural(c("question"), "question")} · ${plural(c("method"), "method")}`)}</span>` + (readingControl ? readingRemoveButton(k) : "") + `</div>`;
+      + `<span class="pa-meta">${tx(meta || `${plural(c("claim"), "claim")} · ${plural(c("question"), "question")} · ${plural(c("method"), "method")}`)}</span>` + controls + `</div>`;
   }
   function stubRow(k){
     const s = STUBS[k] || {}, n = cites[k] || 0;
@@ -314,7 +337,8 @@
       const venue = venueFromKey(k);
       if (venue && p.journal) { const t = vt[venue] || (vt[venue] = {}); t[p.journal] = (t[p.journal] || 0) + 1; }
       return { k, stub, title: p.title || k, updated: p.curation_updated || 0,
-        year: p.year || 0, pass: stub ? 0 : p.pass ?? null, type: p.type || "", auth, venue };
+        // the VALIDATED pass sorts and ranks the library (a never-validated paper: null, last)
+        year: p.year || 0, pass: stub ? 0 : p.validated ?? null, type: p.type || "", auth, venue };
     };
     IDX = PK.map(k => row(k, false)).concat(SK.map(k => row(k, true)));
     for (const r of IDX) if (r.venue && !VENUE[r.venue])      // the most-used spelling names the token
@@ -363,8 +387,8 @@
     key: ["Citation key · A–Z", "Citation key A–Z"],
     updated: ["Curation record updated · newest first", "Recently updated curation records"],
     "updated-old": ["Curation record updated · oldest first", "Oldest updated curation records"],
-    pass: ["Curation pass · highest first", "Highest curation pass first"],
-    "pass-low": ["Curation pass · lowest first", "Lowest curation pass first"],
+    pass: ["Validated pass · highest first", "Highest validated pass first"],
+    "pass-low": ["Validated pass · lowest first", "Lowest validated pass first"],
   };
   if (SORTS[store.get("pythia.sort")]) S.sort = store.get("pythia.sort");
   function sortControl(){
@@ -573,20 +597,31 @@
     return h + `<div class="pa-pad"></div></div>`;
   }
 
-  // ── reading: the worklist, what is in progress, and the frontier ──
-  function reading(){
-    const active = (GRAPH.active || []).filter(k => SL[k]);
-    const prog = PK.filter(k => (PAPERS[k].pass || 0) < 4 && !active.includes(k))
-      .sort((a, b) => (PAPERS[b].pass || 0) - (PAPERS[a].pass || 0) || (PAPERS[b].year || 0) - (PAPERS[a].year || 0));
-    const done = PK.filter(k => PAPERS[k].pass === 4);
-    const front = SK.filter(k => cites[k]).sort((a, b) => cites[b] - cites[a]);
-    const passMeta = k => { const p = PAPERS[k].pass || 0;
-      return p < 4 ? `Pass ${p} of 4 · ${PASS[p]} · next: ${PASS[p + 1].toLowerCase()}` : `${plural(PAPERS[k].slices.length, "slice")} · finished`; };
+  // ── the desk: what curation moved past what the owner validated (SCHEMA §4) ──
+  // Two groups, newest curation record first: "New" (never validated) and "Changed" (validated at
+  // another pass than curation now stands at). A row opens the paper; Validate takes it off the
+  // desk. A collection narrows it — the papers gathered for one purpose. Derived from the payload,
+  // so the offline copy and a static build list it too; only the server can validate.
+  const deskMeta = k => { const p = PAPERS[k], m = curPass(p);
+    return p.validated == null ? `new · curated ${m} ${PASS[m]}` : `validated ${p.validated} ${PASS[p.validated] || ""} · curated ${m} ${PASS[m]}`; };
+  function desk(){
+    if (S.deskColl && !COLLECTIONS[S.deskColl]) S.deskColl = "";
+    const only = S.deskColl ? new Set(COLLECTIONS[S.deskColl].papers) : null;
+    const d = deskKeys(only), all = deskKeys();
     let h = `<div class="pa-col">`;
-    if (active.length) h += sec("On the desk", "the worklist") + active.map(k => paperRow(k, passMeta(k), true)).join("");
-    h += sec("In progress", "being curated") + paged("prog", prog, 30, k => paperRow(k, passMeta(k)));
-    if (done.length) h += sec("Curated", "all four passes") + paged("done", done, 30, k => paperRow(k, passMeta(k)));
-    if (front.length) h += sec("Frontier", "stubs, most cited first") + paged("front", front, 30, stubRow);
+    if (CK.length) {
+      const n = c => COLLECTIONS[c].papers.filter(k => deskStatus(PAPERS[k])).length;
+      h += `<div style="padding:12px 16px 0"><div class="pa-chips">`
+        + `<button class="pa-chip${S.deskColl ? "" : " on"}" ${act(() => { S.deskColl = ""; S.more = {}; render(0); })}>All<i>${all.new.length + all.changed.length}</i></button>`
+        + CK.map(c => `<button class="pa-chip${S.deskColl === c ? " on" : ""}" ${act(() => { S.deskColl = c; S.more = {}; render(0); })}>${tx(COLLECTIONS[c].title)}<i>${n(c)}</i></button>`).join("")
+        + `</div></div>`;
+    }
+    if (LIVE && OFFLINE.on) h += `<div class="pa-note pa-offline-why">Validating ${OFFLINE_WHY}.</div>`;
+    const row = k => paperRow(k, deskMeta(k), validateControls(k, true));
+    if (d.new.length) h += sec("New", "never validated") + paged("desk-new", d.new, 30, row);
+    if (d.changed.length) h += sec("Changed", "curation moved since you validated") + paged("desk-chg", d.changed, 30, row);
+    if (!d.new.length && !d.changed.length) h += `<div class="pa-note">${S.deskColl
+      ? "Nothing from this collection is on the desk." : "Nothing on the desk: every paper is validated at its current pass."}</div>`;
     return h + `<div class="pa-pad"></div></div>`;
   }
 
@@ -654,10 +689,11 @@
     const tags = p.tags || [];
     let h = `<div class="pa-col"><div class="pa-head"><span class="pa-cap">${tx([key, p.type, p.year].filter(Boolean).join(" · "))}</span>`
       + `<h1>${tx(p.title || key)}</h1>` + (p.authors && p.authors.length ? `<span class="pa-auth">${tx(authors(p.authors))}</span>` : "")
-      + `<span class="pa-pass">${pm(p.pass, true)}${p.pass == null ? "No pass recorded" : `Pass ${p.pass} of 4 · ${PASS[p.pass]}`}</span>`
+      + `<span class="pa-pass">${pm(p.validated, true)}${p.validated == null ? `New · not yet validated` : `Validated ${p.validated} of 4 · ${PASS[p.validated]}`}`
+      + `${p.validated !== curPass(p) ? `<span class="pa-ahead">curated ${curPass(p)} · ${PASS[curPass(p)]}</span>` : ""}</span>`
       + (tags.length ? `<span class="pa-tags">` + tags.map(t => `<button ${act(() => { remember(t); keepPos(); S.tab = "search"; S.q = t; S.stacks.search = []; S.future.search = []; saveNav(); render(0); })}>${tx(t)}</button>`).join("") + `</span>` : "")
       + (pdfOK(key) ? `<span class="pa-links"><button class="pa-btn" ${act(() => showPdf(key, focus))}>Read PDF alongside</button><a href="pdf/${encodeURIComponent(key)}.pdf" target="_blank" rel="noopener">Open the PDF</a></span>` : "")
-      + readingRemoveButton(key)
+      + validateControls(key)
       + (p.note && !focus ? `<span class="pa-sub">${tx(p.note)}</span>` : "") + `</div>`;
     if (focus && SL[key][focus]) h += `<section class="pa-evidence-focus" aria-label="Selected source claim">`
       + sec("Selected source claim", focus) + detail({ t: "slice", pk: key, id: focus }) + `</section>`
@@ -795,7 +831,7 @@
   const ICON = {
     library: `<path d="m16 6 4 14M12 6v14M8 8v12M4 4v16"/>`,
     topics: `<path d="M21 12h-8M21 6H8M21 18h-8M3 6v4c0 1.1.9 2 2 2h3M3 10v6c0 1.1.9 2 2 2h3"/>`,
-    reading: `<path d="M12 7v14M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/>`,
+    desk: `<path d="M2 8h20M4 8v12M20 8v12M4 13h7M11 8v5M14 5h4v3"/>`,
     search: `<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>`,
   };
   const BOARD = `<svg viewBox="0 0 24 24"><rect x="3" y="4" width="7" height="16"/><rect x="14" y="4" width="7" height="9"/><path d="M10 9h4"/></svg>`;
@@ -859,7 +895,7 @@
     }
     const sub = S.tab === "library" ? plural(PK.length + SK.length, "paper")
       : S.tab === "topics" ? `${CK.length ? plural(CK.length, "collection") + " · " : ""}${tLeaves.length} topics · ${Object.keys(BROAD).length} broad slices`
-      : S.tab === "reading" ? `${PK.filter(k => (PAPERS[k].pass || 0) < 4).length} in progress` : "";
+      : S.tab === "desk" ? (n => `${plural(n, "paper")} on the desk`)(PK.filter(k => deskStatus(PAPERS[k])).length) : "";
     return `<div class="pa-root"><div class="pa-col"><div class="pa-brand">${MARK}<span class="pa-word">Pythia</span><span class="pa-hbtns">`
       + (S.tab === "library" ? `<button class="pa-hbtn" aria-label="Filter and sort" ${act(() => { S.sheet = true; render(); })}>${FILTER}${nFilters() ? `Filters · ${nFilters()}` : "Filter"}</button>` : "")
       + pdfButton() + `<button class="pa-hbtn" aria-label="Open the graph board" ${act(() => setMode("board"))}>${BOARD}Board</button></span></div>`
@@ -870,7 +906,7 @@
   }
   function body(){
     const r = cur();
-    if (!r) return { library, topics, reading, search }[S.tab]();
+    if (!r) return { library, topics, desk, search }[S.tab]();
     if (r.t === "paper") return paper(r.key, r.focus);
     if (r.t === "ledger") return ledger(r.node);
     if (r.t === "collection") return collection(r.slug);
@@ -923,7 +959,7 @@
   }
   const hudBtn = document.createElement("button");
   hudBtn.id = "appBtn"; hudBtn.className = "libbtn"; hudBtn.textContent = "app";
-  hudBtn.title = "the reading app — library, topics, reading, search";
+  hudBtn.title = "the reading app — library, topics, desk, search";
   hudBtn.addEventListener("click", () => setMode("app"));
   const hud = document.getElementById("hud");
   if (hud) hud.insertBefore(hudBtn, hud.children[1] || null);

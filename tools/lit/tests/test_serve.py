@@ -87,14 +87,14 @@ def test_pwa_manifest_and_phone_icons_are_served(srv):
         assert body.startswith(b"\x89PNG\r\n\x1a\n")
 
 
-def test_wip_row_click_finds_the_paper_on_the_board(srv):
-    # The cockpit's three-window launch (card + PDF popup + terminal) is retired: a reading-list
-    # row click now just runs the board's own gotoPaper, same as a search result or a library row.
+def test_desk_row_click_finds_the_paper_on_the_board(srv):
+    # A desk-panel row click runs the board's own gotoPaper, same as a search result or a library
+    # row; its ✓ validates through the one shared validatePaper (POST /validate).
     text = get(srv, "/")[2].decode()
-    enter = text.split("function enter(k){", 1)[1].split("async function returnToGraph", 1)[0]
-    assert "gotoPaper(k)" in enter
-    assert "window.open(" not in enter
-    assert 'fetch("term"' not in enter and "PHONE_LAUNCH" not in enter
+    panel = text.split('const panel = document.getElementById("deskPanel");', 1)[1].split("})();", 1)[0]
+    assert "gotoPaper(r.dataset.k)" in panel
+    assert "validatePaper(k, curPass(PAPERS[k]))" in panel
+    assert "window.open(" not in panel and 'fetch("term"' not in panel
 
 
 def test_the_pdf_split_follows_the_window_shape_in_every_mode(srv):

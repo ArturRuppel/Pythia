@@ -54,7 +54,7 @@
   body.detached{overflow:hidden}
   body.detached #hud,body.detached #board,body.detached #searchResults,body.detached #dockEmpty,
   body.detached #dockGrip,body.detached #tip,body.detached #ctxmenu,
-  body.detached #wipPanel,body.detached #aimPanel,
+  body.detached #deskPanel,body.detached #aimPanel,
   body.detached #libraryPane{display:none!important}
   body.detached #detachPane{display:block;position:fixed;inset:0;z-index:5;background:#e2e2e5}
   body.detached #detachEmpty{position:absolute;inset:0;display:flex;align-items:center;

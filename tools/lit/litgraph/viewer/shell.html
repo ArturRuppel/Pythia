@@ -30,8 +30,8 @@
           title="draw only the arrows you asked for — everything resting goes dark (q)">quiet arrows</button>
   <span id="viewsWrap" hidden><button id="viewsBtn" class="libbtn"
        title="alternative renderings of the same graph">show graph ▾</button><div id="viewsMenu" hidden></div></span>
-  <span id="wip" class="wip" hidden></span>
-  <span id="aims" class="wip" hidden></span>
+  <span id="desk" class="hpill" title="the desk: papers whose curation moved past what you validated" hidden></span>
+  <span id="aims" class="hpill" hidden></span>
   <button id="pdfToggle" class="pdfbtn" hidden>📄 PDF</button>
   <label id="bzoom" class="zoomctl" title="board zoom — drag, ctrl/⌘-wheel over the board, or + / − / 0">zoom
     <input type="range" min="0" max="1000" step="1" value="500">
@@ -49,7 +49,7 @@
 <div id="detachPane"><div id="detachEmpty">waiting for the graph — hover a claim or open a card to load its PDF here</div></div>
 <div id="tip"></div>
 <div id="ctxmenu"></div>
-<div id="wipPanel" hidden></div>
+<div id="deskPanel" hidden></div>
 <div id="aimPanel" hidden></div>
 <div id="libraryPane">
   <div id="libFacets"></div>
@@ -71,7 +71,7 @@
 <script>
 const NS="http://www.w3.org/2000/svg";
 // ── data: injected by `lit build` (replaces the mockup's hardcoded literals) ──
-const GRAPH = /*__GRAPH_JSON__*/ {"papers":{},"broad":{},"stubs":{},"order":[],"active":[]} /*__END__*/;
+const GRAPH = /*__GRAPH_JSON__*/ {"papers":{},"broad":{},"stubs":{},"order":[]} /*__END__*/;
 /*@LITGRAPH_JS@*/
 </script>
 </body>

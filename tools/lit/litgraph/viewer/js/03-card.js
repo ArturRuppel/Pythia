@@ -1,5 +1,5 @@
-// curation maturity (SCHEMA §4) as a pie-filled circle: pass/4. Empty ring = stub (0),
-// full disk = fully curated (4). Stubs have no `pass` → treated as 0.
+// a pass (SCHEMA §4) as a pie-filled circle: n/4. Empty ring = stub or nothing validated (0),
+// full disk = 4. Cards and rows draw the VALIDATED pass with it (vstat, below).
 function passCircle(pass){
   const p = Math.max(0, Math.min(4, pass || 0)), frac = p / 4, r = 7;
   const ring = `<circle cx="8" cy="8" r="${r}" fill="none" style="stroke:var(--faint);stroke-width:1.3"/>`;
@@ -11,6 +11,44 @@ function passCircle(pass){
   }
   return `<span class="circle" title="curation maturity ${p}/4">`
        + `<svg width="16" height="16" viewBox="0 0 16 16">${ring}${wedge}</svg></span>`;
+}
+// ── the desk (SCHEMA §4): what the owner has validated, against how far curation ran ─────────
+// `pass` is how far curation ran; `validated` is the pass the OWNER has validated (absent: never
+// validated, a new paper). A paper is on the desk iff `validated` is absent or differs from the
+// pass (absent `pass` = 0). Derived here, never stored — so the static build lists it too, and
+// only `lit serve` can change it (validatePaper, 14-search.js). Function declarations, because
+// the landing column mints its cards while the bundle is still being parsed.
+function passLabel(n){ return ["ingested", "abstract", "intro+disc", "results", "methods"][n] || ""; }
+function curPass(p){ return p && p.pass != null ? p.pass : 0; }
+function deskStatus(p){
+  if (!p || !p.cur || p.aim || p.narr) return null;
+  if (p.validated == null) return "new";
+  return p.validated !== curPass(p) ? "changed" : null;
+}
+// The desk's two groups, newest curation record first (the only date a paper carries), then by
+// citekey. `only` narrows it to a set of citekeys (a collection).
+function deskKeys(only){
+  const out = {new: [], changed: []};
+  for (const k in PAPERS) {
+    if (only && !only.has(k)) continue;
+    const st = deskStatus(PAPERS[k]);
+    if (st) out[st].push(k);
+  }
+  const newest = (a, b) => ((PAPERS[b].curation_updated || 0) - (PAPERS[a].curation_updated || 0))
+    || (a < b ? -1 : a > b ? 1 : 0);
+  out.new.sort(newest); out.changed.sort(newest);
+  return out;
+}
+// A paper's status wherever the board shows one: the VALIDATED pass as the pie, and a quiet
+// marker when the owner has not caught up — "new" if never validated, "curated M" if curation ran
+// ahead. `.vstat` is the handle validatePaper swaps in place.
+function vstat(p){
+  const v = p.validated, m = curPass(p);
+  const mark = v == null ? `<span class="vmark">new</span>`
+    : m > v ? `<span class="vmark" title="curation ran to pass ${m} · ${passLabel(m)}">curated ${m}</span>` : "";
+  const title = v == null ? `new · never validated · curated ${m} ${passLabel(m)}`
+    : `validated ${v}/4 · ${passLabel(v)}`;
+  return `<span class="vstat" title="${title}">${passCircle(v || 0).replace(/ title="[^"]*"/, "")}${mark}</span>`;
 }
 function authLine(a){return a.map(([n, pos, corr]) =>
   corr ? `<span class="star">${n}*</span>` : n).join(' · ');}
@@ -76,7 +114,7 @@ function paperCard(key, level){
   // An aim carries neither: curation maturity is a reading protocol for a document that already
   // exists (programme design §7), and an aim has no year — which the header used to print as
   // a literal "null".
-  let body = `<div class="chd">${prog ? "" : passCircle(cur ? p.pass : 0)}<span class="ckey">${key}</span>`;
+  let body = `<div class="chd">${prog ? "" : cur ? vstat(p) : passCircle(0)}<span class="ckey">${key}</span>`;
   if (cur) {
     body += `<span class="ctype ${p.type}">${p.type}</span>`;
     // tags ride in the header (collapsed too) between the class pill and the right-pushed year
@@ -145,8 +183,8 @@ function paperCard(key, level){
     hoverRow(el, e);
   });
   el.addEventListener("mouseleave", () => { dropTip(); hoverRow(null); });
-  // right-click a curated card (browse view) → "Curate this paper" → move it onto the worklist
-  if (cur && LIVE) el.addEventListener("contextmenu", e => showCurateMenu(e, key));
+  // right-click a curated card (browse view) → Validate, at its pass or a lower one (the desk)
+  if (cur && !prog && LIVE) el.addEventListener("contextmenu", e => showDeskMenu(e, key));
   // Both kinds of card open on a click; what they open to differs. A curated card routes through
   // cardClick (fold / drill / isolate); a stub has none of that and simply reveals its bib record.
   // The citekey stays the tip's handle in both: on desktop the mousemove above pops it on hover,
