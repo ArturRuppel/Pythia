@@ -33,6 +33,7 @@ from pathlib import Path
 import fitz  # pymupdf — a litgraph hard dependency
 
 from .fulltext import _normalize, repair_legacy_glyphs
+from .pdfview import words_of
 
 JOIN = "[...]"          # authored non-contiguous marker in a stored quote (SCHEMA §6.4)
 JOIN_DISPLAY = " […] "  # how a join reads in the polished text
@@ -284,12 +285,18 @@ def _fold(text: str) -> str:
     return re.sub(r"[\s\-]+", "", text)
 
 
-def _rect_text(page: "fitz.Page", rect: list[float]) -> str:
-    """Text inside one `quote_loc` rect (a page-fraction box) on `page`."""
-    w, h = page.rect.width, page.rect.height
+def _rect_text(words: list[dict], rect: list[float]) -> str:
+    """Text under one `quote_loc` rect (a page-fraction box): the words of the page
+    (`pdfview.words_of`) whose *centre* lies inside it, in reading order.
+
+    Not a clip. In an old scan the text layer's word boxes are taller than the line pitch, so
+    a box drawn round one line also overlaps the lines above and below, and clipping returned
+    their words too — a correct location then read as some other text. A neighbour line's
+    centre stays outside the box, and a word `lit locate` matched always has its centre
+    inside, since each rect it writes is the bounding box of the matched words of one line."""
     x0, y0, x1, y1 = rect
-    clip = fitz.Rect(x0 * w, y0 * h, x1 * w, y1 * h)
-    return page.get_text("text", clip=clip)
+    return " ".join(w["t"] for w in words
+                    if x0 <= (w["x0"] + w["x1"]) / 2 <= x1 and y0 <= (w["y0"] + w["y1"]) / 2 <= y1)
 
 
 def quote_loc_covers(extracted: str, quote: str, window: int = 16, scan: int = 60,
@@ -354,6 +361,7 @@ def verify_quote_locs_graph(graph, pdf_dir: Path | None) -> list[str]:
         doc = _open_pdf(pdf_dir, ck)
         if doc is None:
             continue
+        words: dict[int, list[dict]] = {}
         try:
             for s in p.slices:
                 if not s.quote or not s.quote_loc:
@@ -365,8 +373,9 @@ def verify_quote_locs_graph(graph, pdf_dir: Path | None) -> list[str]:
                 if not (0 <= page_no < len(doc)):
                     warnings.append(f"{ck}:{s.id} quote_loc page {page_no} out of range")
                     continue
-                page = doc[page_no]
-                extracted = " ".join(_rect_text(page, r) for r in rects)
+                if page_no not in words:
+                    words[page_no] = words_of(doc[page_no])
+                extracted = " ".join(_rect_text(words[page_no], r) for r in rects)
                 if not quote_loc_covers(extracted, s.quote):
                     warnings.append(f"{ck}:{s.id} quote_loc does not cover its quote")
         finally:

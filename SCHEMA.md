@@ -317,7 +317,9 @@ A `quote` may carry an optional `quote_loc`, a page plus fractional rects, one p
 line, welding it to its place in the PDF. It is derived, not authored. `lit locate` resolves
 it by word-geometry matching covering the whole quote, across line breaks and hyphenation,
 and writes it into the YAML. Re-run it with `--force` any time the matcher improves. It is
-additive and never affects graph structure or emergent properties. It only drives the
+additive and never affects graph structure or emergent properties. `lit build` reads the
+words whose centre lies inside each stored rect back out of the PDF and flags a `quote_loc`
+whose text does not match its quote (a stale or mis-parented location). It only drives the
 `lit serve` viewer's PDF quote windows: a stored location renders instantly, and a quote
 without one is resolved live. The static artifact from `lit build` ignores it.
 

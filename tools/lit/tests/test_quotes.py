@@ -9,6 +9,7 @@ import fitz
 from litgraph.graph import Graph, Paper, Slice
 from litgraph.quotes import (polish, polish_graph, polish_quote, quote_loc_covers, strip_artifacts,
                              verify_quote_locs_graph)
+from litgraph.serve import locate_quote
 
 
 # --- strip_artifacts ---------------------------------------------------------
@@ -301,3 +302,46 @@ def test_verify_quote_locs_graph_flags_out_of_range_page(tmp_path: Path):
     warns = verify_quote_locs_graph(g, tmp_path)
     assert len(warns) == 1 and "c1" in warns[0] and "out of range" in warns[0]
 
+
+def _tight_pitch_pdf(path: Path, lines: list[str]) -> None:
+    """Lines set closer than their word boxes are tall, as in an old scan's text layer: each
+    word box overlaps the lines above and below it."""
+    with fitz.open() as doc:
+        pg = doc.new_page()
+        for i, line in enumerate(lines):
+            pg.insert_text((40, 100 + 9 * i), line, fontsize=10)   # box ~13.7 pt, pitch 9 pt
+        doc.save(str(path))
+    with fitz.open(path) as doc:      # the premise: every word box is taller than the pitch
+        assert all(w[3] - w[1] > 9 for w in doc[0].get_text("words"))
+
+
+def test_verify_quote_locs_graph_ignores_neighbour_lines_of_tall_word_boxes(tmp_path: Path):
+    # Clipping the page by a rect drawn round the middle line also returned the full lines
+    # above and below (their boxes reach into it), and the correct weld was flagged.
+    lines = ["temperature increases steadily afterward while the medium is replaced every other day",
+             "cells jam near the transition boundary once the density passes a critical value in",
+             "nothing else happens in later weeks of culture apart from a slow drift of the colonies"]
+    pdf_path = tmp_path / "Demo2020Jour.pdf"
+    _tight_pitch_pdf(pdf_path, lines)
+    loc = locate_quote(pdf_path, lines[1])            # the rects `lit locate` would write
+    assert loc and loc["page"] == 0 and len(loc["rects"]) == 1
+    g = _graph(Slice(id="c1", kind="claim", text="x", quote=lines[1], quote_loc=loc))
+    assert verify_quote_locs_graph(g, tmp_path) == []
+    # ... and the check still bites on the same page: the rect of a neighbour line is not this quote
+    wrong = locate_quote(pdf_path, lines[0])
+    g = _graph(Slice(id="c1", kind="claim", text="x", quote=lines[1], quote_loc=wrong))
+    assert len(verify_quote_locs_graph(g, tmp_path)) == 1
+
+
+def test_locate_and_verify_agree_on_a_wrapped_quote_in_tight_lines(tmp_path: Path):
+    # a quote wrapping across two tight lines: one rect per line from locate, read back whole
+    lines = ["the first line ends here and the quoted passage begins with cells jam near the",
+             "transition boundary once the density passes a critical value in every well we",
+             "nothing else happens in later weeks of culture apart from a slow drift of colonies"]
+    pdf_path = tmp_path / "Demo2020Jour.pdf"
+    _tight_pitch_pdf(pdf_path, lines)
+    quote = "cells jam near the transition boundary once the density passes a critical value"
+    loc = locate_quote(pdf_path, quote)
+    assert loc and len(loc["rects"]) == 2
+    g = _graph(Slice(id="c1", kind="claim", text="x", quote=quote, quote_loc=loc))
+    assert verify_quote_locs_graph(g, tmp_path) == []

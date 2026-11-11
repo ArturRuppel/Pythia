@@ -125,9 +125,19 @@ def page_words(pdf: Path, n: int) -> list[dict]:
     if hit and hit[0] == mtime:
         return hit[1]
     with fitz.open(pdf) as doc:
-        page = doc[n]                         # IndexError on an out-of-range page → 404 upstream
-        w, h = page.rect.width, page.rect.height
-        raw = page.get_text("words")          # (x0, y0, x1, y1, text, block, line, word_no)
+        out = words_of(doc[n])                # IndexError on an out-of-range page → 404 upstream
+    _WORDS[key] = (mtime, out)
+    return out
+
+
+def words_of(page: "fitz.Page") -> list[dict]:
+    """The uncached body of :func:`page_words`, for a caller already holding an open page. The
+    one word extractor behind both ends of a ``quote_loc``: ``lit locate`` builds each rect as
+    the bounding box of matched words from it, and the build's coverage check
+    (``quotes.verify_quote_locs_graph``) reads the text back by selecting words from it whose
+    centre lies inside the rect — so a rect always reads back as the words that made it."""
+    w, h = page.rect.width, page.rect.height
+    raw = page.get_text("words")              # (x0, y0, x1, y1, text, block, line, word_no)
     out = []
     for x0, y0, x1, y1, t, block, line, _wn in sorted(raw, key=lambda o: (o[5], o[6], o[7])):
         t = "".join(c for c in t if not unicodedata.category(c).startswith("C"))  # strip control/zero-width
@@ -135,7 +145,6 @@ def page_words(pdf: Path, n: int) -> list[dict]:
             continue
         out.append({"t": t, "x0": x0 / w, "y0": y0 / h, "x1": x1 / w, "y1": y1 / h,
                     "ln": block * 10000 + line})
-    _WORDS[key] = (mtime, out)
     return out
 
 
