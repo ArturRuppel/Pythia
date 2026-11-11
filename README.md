@@ -105,6 +105,17 @@ Everything runs through the `lit` CLI.
   through the same viewer `lit build` ships. Fed a scratch YAML, it renders a
   proposition before it is committed: the curation loop's "show it as it will
   look" step, which also flags any non-verbatim quote.
+- **`lit collection`**: group papers by *purpose* (a peer review, a grant, a
+  talk), not by subject (SCHEMA §10). Type the collection's title into the
+  viewer's search to find it and list its papers.
+
+  ```bash
+  lit collection new "Batching review" --note "related work for the review"
+  lit collection add batching-review Chen2021Sys            # by citekey
+  lit collection add batching-review 10.7554/eLife.83588    # by DOI; mints a stub if new
+  lit collection remove batching-review Chen2021Sys
+  lit collection list                                         # or: lit collection show <slug>
+  ```
 
 Smaller commands round out the loop: `lit enrich` and `lit abstracts` backfill
 stub metadata and abstracts onto papers ingested before those fields existed,

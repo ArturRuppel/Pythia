@@ -1,6 +1,6 @@
 # SCHEMA: the on-disk data model
 
-**Status:** v2, the lean slice model. **Date:** 2026-06-25. **Last revised:** 2026-09-01.
+**Status:** v2, the lean slice model. **Date:** 2026-06-25. **Last revised:** 2026-10-29.
 Companion to [CONCEPT.md](CONCEPT.md).
 
 CONCEPT converged the graph to one primitive, the slice, in a container, the paper, wired by
@@ -20,7 +20,7 @@ No code is required to define the model. This spec plus the worked [`example/`](
 tree is the model, and a parser or generator conforms to it.
 
 Section 5 is the table that maps CONCEPT's three edge names onto the YAML field names used
-everywhere below. Section 10 records the choices this schema replaced.
+everywhere below. Section 11 records the choices this schema replaced.
 
 ---
 
@@ -37,6 +37,7 @@ touches one file, which gives one clean commit and one readable diff.
 | **Broad question** | `questions/<slug>.yaml`, thin | shared `leads_to` target for questions |
 | **Broad method** | `methods/<slug>.yaml`, thin | shared technique; minted only when at least two papers share it |
 | **Topic** | `topics/<slug>.yaml` | a container of keywords, grouping the `tags` vocabulary so papers stay findable as it grows. Not a slice and not in the graph (section 9) |
+| **Collection** | `collections/<slug>.yaml` | papers gathered for a purpose (a review, a grant, a talk), listed by citekey. Not a slice and not in the graph (section 10) |
 | **Stub** (uncurated paper) | one entry in `stubs.yaml` | an un-sliced container: bibliographic data only, machine-fetched, holding only the wildcard |
 | **Author** | emergent, derived from each paper's `authors:` | no hand-maintained author files |
 
@@ -66,6 +67,7 @@ inside a paper file is that paper containing it. It is the only implicit edge.
   questions/   <slug>.yaml   # thin broad questions
   methods/     <slug>.yaml   # thin broad methods (≥2 papers)
   topics/      <slug>.yaml   # keyword containers — a paper-discovery axis, NOT graph (§9)
+  collections/ <slug>.yaml   # papers gathered for a purpose — NOT graph either (§10)
   programme/   aims/<slug>.yaml · narrative/<slug>.yaml
                              # the proposed-work extension — separate spec, see below
   stubs.yaml                 # { citekey: bib-metadata } — un-sliced containers
@@ -402,7 +404,71 @@ topic that should sit under it. Nothing renumbers and no consumer learns a new c
 
 ---
 
-## 10. History: what this schema replaced
+## 10. Collections: the purpose axis, not the graph
+
+A collection records **why papers were gathered**: the related work for a peer review, the
+citations behind a grant, the papers a talk rests on. It is the third way into the library, and
+it answers a question neither of the other two can:
+
+| Axis | Answers | Stays true |
+|---|---|---|
+| the claim ladder (`claims/`, section 4) | *what is known* | until a paper contradicts it |
+| the topic axis (`topics/`, section 9) | *what papers do I have on X* | as long as the papers do |
+| a collection (`collections/`) | *which papers did I gather for Y, and why* | it is dated: the review gets submitted |
+
+It is not a tag, and using `tags` for it is the misuse this section exists to prevent. A tag
+describes what a paper is about and is read by the topic axis. "Batching review" says nothing
+about any paper's subject; written as a tag it would sit on the paper long after the review was
+sent, and surface in `lit topics --orphans` as an unfiled tag forever.
+
+```yaml
+title: "Batching review"           # required — what search matches
+date: "2026-10-29"                   # optional, ISO
+note: "Related work for refereeing a batching-latency manuscript."   # optional, free text
+papers:                              # required (may be empty), citekeys in the order gathered
+  - Chen2021Sys
+  - West2015Sigmod                   # a stub is fine: a paywalled paper may only ever be one
+```
+
+| Field | Req | Type | Notes |
+|---|---|---|---|
+| `title` | ✔ | str | the name the viewer's search finds it by, e.g. `"Batching review"` |
+| `date` | – | ISO date | when the collection is for, e.g. the review's due date. Display and ordering only (newest first) |
+| `note` | – | str | free-text gloss on what the papers were gathered for. Not searched |
+| `papers` | ✔ | citekey list | curated papers **or stubs**, in the order they were gathered |
+
+### Membership is authored on the collection, never on the paper
+
+The mirror image of a topic. A topic's membership is derived from paper `tags` and nothing is
+written on the paper. A collection's membership is written on the collection, and still nothing
+is written on the paper: a paper never names its collections. The viewer derives the inverse
+("in collections") for display, and that is all. A paper may be in any number of collections.
+
+`lit collection` maintains the file. `lit collection add <slug> <doi>` accepts a DOI that is not
+yet in the library and mints a `stubs.yaml` entry for it first, from OpenAlex or Crossref, with
+the same citekey rules and merge as `lit ingest`'s references (section 4). So the collection can
+always name a key the build resolves.
+
+### Validation
+
+The build fails on:
+
+1. **An unresolved citekey.** Every entry in `papers` is a `curated/` file or a `stubs.yaml`
+   key. This is an error, not a warning like a dead topic keyword (section 9 rule 3), because
+   the collection is the one place this membership is authored. A key that resolves nowhere is
+   a dangling ref in the sense of rule 1 of section 6.
+2. **A citekey listed twice** in one collection, and **a missing `title`**.
+3. **A slug that is not kebab-case, or that also names** a `claims/`, `questions/`, `methods/`
+   or `topics/` slug or a citekey. Collection slugs are disjoint from every name a ref can
+   resolve to.
+4. **A collection in the slice graph.** A collection slug in any `grounded_in`, `leads_to`,
+   `answers`, `corroborates` or `contradicts` is a dangling ref under rule 1 of section 6, the
+   same rule that keeps topics out (section 9 rule 4). No edge targets a collection and no
+   emergent property reads one. Deleting `collections/` changes nothing in the graph.
+
+---
+
+## 11. History: what this schema replaced
 
 - **A `tier:` field.** Replaced by file presence (section 1).
 - **`status`, `evidence`, citation `role` and rollup `polarity` fields.** All emergent now
@@ -414,3 +480,6 @@ topic that should sit under it. Nothing renumbers and no consumer learns a new c
   ([docs/2026-07-19-tags-and-search-design.md](docs/2026-07-19-tags-and-search-design.md)),
   which is why `tags` lives only on the container and topics derive membership rather than
   papers naming topics (sections 4 and 9).
+- **Purpose as a tag.** Grouping papers by why they were gathered (a review, a grant) was
+  refused as a tag, because tags and the topics built on them describe what a paper is about
+  and stay true. Collections took it over, authored on the collection (section 10).

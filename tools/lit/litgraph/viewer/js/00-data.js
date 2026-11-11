@@ -8,6 +8,11 @@ const ORDER = GRAPH.order;
 // still emits "topics": {}) and `lit preview`'s isolated payload, which carries no "topics" key
 // at all (preview.isolate() reduces to one paper — see preview.py).
 const TOPICS = GRAPH.topics || {};
+// Collections (SCHEMA §10): papers gathered for a purpose — a review, a grant, a talk — found by
+// typing the collection's title into search. `papers` is authored order, curated and stubs alike;
+// PAPERS / STUBS say which is which. Never graph: nothing here draws an edge to one. `|| {}` for
+// the same two cases as TOPICS (no collections/ tree; a `lit preview` payload).
+const COLLECTIONS = GRAPH.collections || {};
 // The narrative key (`~<grant>`) when this payload is a PROPOSAL page — the introduction plus
 // the aims under it, isolated together (preview.isolate_proposal) — else null. Only the landing
 // column's own header reads it: everything else on such a page is an ordinary card doing the

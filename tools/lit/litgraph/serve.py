@@ -308,14 +308,14 @@ def _int_param(url: str, name: str) -> int | None:
 
 def _source_version(root: Path, pdf_dir: Path) -> tuple[int, int]:
     """Everything `payload_dict` reads, as a cheap (max mtime ns, file count) fingerprint —
-    curated/|claims/|questions/|methods/|topics/, programme/aims/, config.toml's active list,
-    and the `.md` full text quotes are polished against.
+    curated/|claims/|questions/|methods/|topics/|collections/, programme/aims/, config.toml's
+    active list, and the `.md` full text quotes are polished against.
 
     The count rides along because a deletion *lowers* the max mtime, so mtime alone would call
     a shrunken repo unchanged. ~600 stats, a millisecond, against a rebuild costing a second."""
     latest, n = 0, 0
     globs = [(root / d, "*.yaml") for d in
-             ("curated", "claims", "questions", "methods", "topics")]
+             ("curated", "claims", "questions", "methods", "topics", "collections")]
     globs.append((root / "programme" / "aims", "*.yaml"))
     globs.append((root / "programme" / "narrative", "*.yaml"))
     globs.append((pdf_dir, "*.md"))

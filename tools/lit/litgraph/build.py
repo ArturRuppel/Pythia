@@ -223,6 +223,16 @@ def _topics_json(g: Graph) -> dict:
             for slug, t in g.topics.items()}
 
 
+def _collections_json(g: Graph) -> dict:
+    """Collections (SCHEMA §10), as the viewer needs them to find one by title and list it:
+    `papers` in authored order, curated and stubs alike — the viewer tells them apart by which
+    of PAPERS / STUBS holds the key, exactly as search already does. `{}` when the repo has no
+    collections/ tree, the same "absent means empty" contract `topics` keeps."""
+    return {slug: {"title": c.title, "note": c.note or "", "date": c.date or "",
+                   "papers": list(c.papers)}
+            for slug, c in g.collections.items()}
+
+
 def to_json_dict(g: Graph, active: "tuple[str, ...]" = (),
                  include_aims: bool = False) -> dict:
     """Serialize the graph for the viewer. Aims — and the narrative axis that orders them —
@@ -257,8 +267,11 @@ def to_json_dict(g: Graph, active: "tuple[str, ...]" = (),
     active_curated = [k for k in active if k in curated]
     # Unlike `active` above, topics carry no worklist or server state — they are public library
     # structure, so (per SCHEMA §9) they belong in both a static `lit build` and `lit serve` alike.
+    # Collections (SCHEMA §10) are the same kind of thing — curator-authored structure over the
+    # papers — so they ride in both as well.
     out = {"papers": curated, "broad": broad, "stubs": stubs, "order": g.order,
-           "active": active_curated, "topics": _topics_json(g)}
+           "active": active_curated, "topics": _topics_json(g),
+           "collections": _collections_json(g)}
     # Narrative rides along with aims (see the flag's docstring above) and only when there is
     # one: a repo with no programme/narrative/ tree must not grow an empty key, matching every
     # other optional axis's "absent means absent" contract.

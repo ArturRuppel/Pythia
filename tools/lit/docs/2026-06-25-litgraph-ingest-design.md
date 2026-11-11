@@ -180,6 +180,11 @@ flagged in the report.
   §3a (venue omitted if OpenAlex has none).
 - Keep DOI-less references (schema `doi` is optional). Skip a reference missing **both**
   author and year (warn; partial graph is valid).
+- **One stub on its own** (added 2026-10-29, `ingest.stub_for_doi`): `lit collection add <slug>
+  <doi>` needs a stub for a paper nobody has ingested or cited. Same rules as a reference — a DOI
+  already in the library returns its key and fetches nothing; otherwise OpenAlex, then Crossref,
+  the same citekey allocation and the same additive `merge_stubs` — plus the focal paper's
+  Crossref family-name split for the first author (SCHEMA §10).
 
 ### Stage D — Write / merge / rename
 - **Rename** the source PDF to `<pdf_dir>/<citekey>.pdf` (a move, in place). Never clobber
@@ -278,4 +283,5 @@ Offline & deterministic via recorded fixtures (canned OpenAlex/Crossref JSON for
 
 ```
 lit ingest <pdf> [--doi DOI] [--root DIR] [--dry-run] [--force]
+lit collection add <slug> <citekey|doi>... [--root DIR] [--dry-run]   # mints stubs (Stage C rules)
 ```

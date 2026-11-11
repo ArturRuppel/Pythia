@@ -2,7 +2,8 @@
 // A second face on the same GRAPH (Claude Design "Logo mark refinement round 2", the tab-bar
 // variant). Reading-list changes share state with the board; four tabs
 // (Library · Topics · Reading · Search), each tab its own push stack of screens (a paper, a
-// slice, a broad node, a stub, a stance ledger). The board stays one tap away — the Board
+// slice, a broad node, a stub, a stance ledger, a collection). Collections (SCHEMA §10) head the
+// Topics tab and are found by title in Search. The board stays one tap away — the Board
 // button here, the "app" button on the HUD — and the choice sticks (localStorage).
 //
 // When it shows: `?view=app` / `?view=board` force it; otherwise the last choice made on this
@@ -113,6 +114,14 @@
   const tKids = k => TK.filter(c => (TOPICS[c].broader || []).includes(k));
   const tIn = {}; for (const k of TK) tIn[k] = new Set(TOPICS[k].papers || []);
 
+  // ── collections (SCHEMA §10) ──
+  // Papers gathered for a purpose. Membership is authored on the collection only; `cIn` is the
+  // inverse, derived here for display ("in collections" on a paper), never written anywhere.
+  const CK = Object.keys(COLLECTIONS).sort((a, b) =>
+    (COLLECTIONS[b].date || "").localeCompare(COLLECTIONS[a].date || "") || a.localeCompare(b));
+  const cIn = {}; for (const c of CK) for (const k of COLLECTIONS[c].papers) (cIn[k] = cIn[k] || []).push(c);
+  const cCur = c => COLLECTIONS[c].papers.filter(k => SL[k]).length;
+
   // ── state ──
   const TABS = ["library", "topics", "reading", "search"];
   const S = {
@@ -200,10 +209,12 @@
     if (r.t === "paper" || r.t === "stub") return r.key + (r.focus ? ` · ${r.focus}` : "");
     if (r.t === "slice") return `${r.pk} · ${r.id}`;
     if (r.t === "ledger") return "Stance";
+    if (r.t === "collection") return COLLECTIONS[r.slug] ? COLLECTIONS[r.slug].title : r.slug;
     return "Broad " + bkind(r.slug);
   }
   function kickOf(r){
     return r.t === "paper" ? "Paper" : r.t === "stub" ? "Stub" : r.t === "ledger" ? "Stance"
+      : r.t === "collection" ? "Collection"
       : r.t === "broad" ? "Broad" : KIND[sl(r).kind] || sl(r).kind;
   }
 
@@ -515,6 +526,10 @@
       + (TOPICS[k].note ? `<span class="pa-in">${tx(TOPICS[k].note)}</span>` : "") + `</span>`
       + `<span class="pa-n">${plural(tIn[k].size, "paper")}</span>${CHEV}</button>`;
     let h = `<div class="pa-col">`;
+    // Collections lead: there are few, they are dated, and they are what you came back for. They
+    // are not topics (why papers were gathered, not what they are about), so they get their own
+    // heading rather than a place in the tree.
+    if (CK.length) h += sec("Collections", "gathered for a purpose") + CK.map(collRow).join("");
     for (const r of tRoots) {
       h += `<button class="pa-item" style="border-top:2px solid var(--pa-text);padding:18px 16px 12px" ${act(toLib(r))}><span>`
          + `<span class="pa-cap">${tx(TOPICS[r].title)} · ${plural(tIn[r].size, "paper")}</span>`
@@ -579,7 +594,7 @@
   function search(){
     const q = S.q.trim().toLowerCase();
     if (q.length < 2) {
-      if (!recent.length) return `<div class="pa-col"><div class="pa-note">Search papers, stubs, claims, broad slices and topics.</div></div>`;
+      if (!recent.length) return `<div class="pa-col"><div class="pa-note">Search papers, stubs, claims, broad slices, topics and collections.</div></div>`;
       return `<div class="pa-col"><div class="pa-cap" style="padding:20px 16px 10px">Recent</div>` + recent.map(r =>
         `<button class="pa-item" style="height:48px;padding:0 16px;gap:10px" ${act(() => { S.q = r; render(0); })}>`
         + `<svg class="pa-chev" viewBox="0 0 24 24"><path d="M12 7v5l3 2"/><circle cx="12" cy="12" r="9"/></svg>`
@@ -593,7 +608,8 @@
       if (m(s.text) || m(s.quote)) slices.push({ t: "slice", pk, id: s.id });
     const broad = Object.keys(BROAD).filter(k => m(BROAD[k].text) || m(BROAD[k].title) || m(k)).map(slug => ({ t: "broad", slug }));
     const tps = TK.filter(k => m(TOPICS[k].title) || (TOPICS[k].keywords || []).some(m));
-    const groups = [["Papers", papers, n => item(n)],
+    const cols = CK.filter(k => m(COLLECTIONS[k].title) || m(k));   // by title (or slug), not note
+    const groups = [["Collections", cols, collRow], ["Papers", papers, n => item(n)],
       ["Claims, questions, methods", slices, n => item(n, (KIND[sl(n).kind] || sl(n).kind).toLowerCase())],
       ["Broad slices", broad, n => item(n)],
       ["Topics", tps, k => `<button class="pa-item" ${act(() => { remember(S.q.trim()); showTopic(k); })}>`
@@ -603,6 +619,31 @@
     return `<div class="pa-col">` + groups.map(([t, l, fn]) => sec(t, l.length, "sm") + paged("s:" + t, l, 20, fn)).join("")
       + `<div class="pa-pad"></div></div>`;
   }
+
+  // ── a collection: its papers, curated and stubs apart ──
+  // Authored order inside each group (the order they were gathered in). Curated rows and stub rows
+  // are the Library's own, so a stub reads as a stub here exactly as it does there.
+  function collRow(c){
+    const C = COLLECTIONS[c], n = C.papers.length, st = n - cCur(c);
+    return `<button class="pa-item" ${act(() => push({ t: "collection", slug: c }))}>`
+      + `<span><span class="pa-ik">${tx(["Collection", C.date].filter(Boolean).join(" · "))}</span>`
+      + `<span class="pa-it b">${tx(C.title)}</span>` + (C.note ? `<span class="pa-in">${tx(C.note)}</span>` : "") + `</span>`
+      + `<span class="pa-n">${plural(n, "paper")}${st ? ` · ${st} stub${st === 1 ? "" : "s"}` : ""}</span>${CHEV}</button>`;
+  }
+  function collection(c){
+    const C = COLLECTIONS[c];
+    if (!C) return `<div class="pa-col"><div class="pa-note">This collection is no longer in the library.</div></div>`;
+    const cur = C.papers.filter(k => SL[k]), stubs = C.papers.filter(k => !SL[k] && STUBS[k]);
+    let h = `<div class="pa-col"><div class="pa-head"><span class="pa-cap">${tx(["Collection", C.date, plural(C.papers.length, "paper")].filter(Boolean).join(" · "))}</span>`
+      + `<h1>${tx(C.title)}</h1>` + (C.note ? `<span class="pa-sub">${tx(C.note)}</span>` : "") + `</div>`;
+    if (cur.length) h += sec("Curated", cur.length) + cur.map(k => paperRow(k)).join("");
+    if (stubs.length) h += sec("Stubs", `${stubs.length} · not yet sliced`) + stubs.map(stubRow).join("");
+    if (!C.papers.length) h += `<div class="pa-note">No papers in this collection yet. Add them with <code>lit collection add</code>.</div>`;
+    return h + `<div class="pa-pad"></div></div>`;
+  }
+  // the inverse, for a paper's or a stub's own page — derived, the paper never names these
+  const inCollections = k => (cIn[k] || []).length
+    ? sec("In collections", cIn[k].length) + cIn[k].map(collRow).join("") : "";
 
   // ── a paper: its own contents ──
   const pdfOK = k => LIVE && PDFS && PDFS.has(k);
@@ -665,6 +706,7 @@
       if (outs({ t: "slice", pk, id: s.id }, "g").some(t => cont(t) === key)) { by.set(pk, { t: "paper", key: pk }); break; }
     if (on.size) h += sec("Built on", on.size) + [...on.values()].map(n => item(n)).join("");
     if (by.size) h += sec("Built on by", by.size) + [...by.values()].map(n => item(n)).join("");
+    h += inCollections(key);
     return h + `<div class="pa-pad"></div></div>`;
   }
 
@@ -720,6 +762,8 @@
       }
       const refs = insAll(n);
       if (refs.length) secs.push(sec("Referenced by", refs.length) + refs.map(e => item(e.from, REL[e.rel])).join(""));
+      const inc = inCollections(r.key);
+      if (inc) secs.push(inc);
     }
     h += `</div>` + quote;
     const isClaim = (r.t === "slice" && sl(n).kind === "claim") || (r.t === "broad" && bkind(r.slug) === "claim");
@@ -814,14 +858,14 @@
         + `<span class="pa-kick">${tx(kickOf(r))}</span>${pdfButton()}<button class="pa-hbtn" ${act(() => { const p = currentPdf(); setMode("board"); if (p) gotoPaper(p.key); })}>Board</button></div></div>`;
     }
     const sub = S.tab === "library" ? plural(PK.length + SK.length, "paper")
-      : S.tab === "topics" ? `${tLeaves.length} topics · ${Object.keys(BROAD).length} broad slices`
+      : S.tab === "topics" ? `${CK.length ? plural(CK.length, "collection") + " · " : ""}${tLeaves.length} topics · ${Object.keys(BROAD).length} broad slices`
       : S.tab === "reading" ? `${PK.filter(k => (PAPERS[k].pass || 0) < 4).length} in progress` : "";
     return `<div class="pa-root"><div class="pa-col"><div class="pa-brand">${MARK}<span class="pa-word">Pythia</span><span class="pa-hbtns">`
       + (S.tab === "library" ? `<button class="pa-hbtn" aria-label="Filter and sort" ${act(() => { S.sheet = true; render(); })}>${FILTER}${nFilters() ? `Filters · ${nFilters()}` : "Filter"}</button>` : "")
       + pdfButton() + `<button class="pa-hbtn" aria-label="Open the graph board" ${act(() => setMode("board"))}>${BOARD}Board</button></span></div>`
       + `<div class="pa-title"><b>${titleOf(null)}</b><span>${tx(sub)}</span></div>`
       + (S.tab === "search" ? `<div class="pa-search"><label><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>`
-        + `<input type="search" enterkeyhint="search" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Papers, claims, topics"></label></div>` : "")
+        + `<input type="search" enterkeyhint="search" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Papers, claims, topics, collections"></label></div>` : "")
       + `</div></div>`;
   }
   function body(){
@@ -829,6 +873,7 @@
     if (!r) return { library, topics, reading, search }[S.tab]();
     if (r.t === "paper") return paper(r.key, r.focus);
     if (r.t === "ledger") return ledger(r.node);
+    if (r.t === "collection") return collection(r.slug);
     return detail(r);
   }
   function tabs(){

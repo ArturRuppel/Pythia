@@ -75,6 +75,133 @@ def _print_report(r: Report) -> None:
     print()
 
 
+_DOI = re.compile(r"^(?:doi:|https?://(?:dx\.)?doi\.org/)?(10\.\d{4,9}/\S+)$", re.IGNORECASE)
+
+
+def _collection(args) -> int:
+    """`lit collection` — SCHEMA §10. Every write goes through collection.py (round-tripped,
+    comments intact), and a DOI not yet in the library is minted as a stub first, so the
+    collection never lists a key the build cannot resolve."""
+    import datetime as dt
+    from . import collection as colmod
+    from .graph import load_repo
+    cfg = load_config(args.root)
+    action = args.action or "list"
+
+    def keys_by_doi() -> dict[str, str]:
+        from .store import load_taken
+        from .citekey import _norm_doi
+        return {_norm_doi(d): k for k, d in load_taken(cfg.root).items() if d}
+
+    def label(papers, k) -> str:
+        p = papers.get(k)
+        if p is None:
+            return f"{k}  (not in the library)"
+        tier = "curated" if p.curated else "stub   "
+        return f"{tier}  {k}  {p.title or ''}"
+
+    try:
+        if action == "new":
+            slug = args.slug or colmod.slugify(args.title)
+            date = dt.date.today().isoformat() if args.date is None else (args.date or None)
+            papers, broad = load_repo(cfg.root)
+            from .topics import load_topics
+            if slug in broad or slug in papers or slug in load_topics(cfg.root):
+                print(f"error: slug {slug!r} already names a broad slice, topic or paper — "
+                      f"pass --slug", file=sys.stderr)
+                return 1
+            path = colmod.create(cfg.root, slug, args.title, note=args.note, date=date)
+            print(f"collection → {slug} created ({path})")
+            print(f"  add papers:  lit collection add {slug} <citekey|doi> ...")
+            return 0
+
+        if action == "add":
+            if args.slug not in colmod.load_collections(cfg.root):
+                print(f"error: no such collection: {args.slug} (create it with "
+                      f"`lit collection new`)", file=sys.stderr)
+                return 1
+            from .ingest import IngestError, stub_for_doi
+            papers, _ = load_repo(cfg.root)
+            keys, failed, minted = [], [], []
+            for ref in args.refs:
+                m = _DOI.match(ref.strip())
+                if ref in papers:
+                    keys.append(ref)
+                elif m:
+                    try:
+                        r = stub_for_doi(m.group(1), root=cfg.root, mailto=cfg.mailto,
+                                         dry_run=args.dry_run)
+                    except IngestError as e:
+                        failed.append(f"{ref}: {e}")
+                        continue
+                    keys.append(r.citekey)
+                    if r.created:
+                        minted.append(r.citekey)
+                        print(f"  + stub {r.citekey}  {r.title}  (via {r.source})")
+                    else:
+                        print(f"  = {ref} is already {r.citekey}")
+                else:
+                    failed.append(f"{ref}: not a citekey in the library, nor a DOI")
+            if args.dry_run:
+                print(f"DRY-RUN — would add {len(keys)} to {args.slug}: {', '.join(keys) or '-'}")
+            elif keys:
+                added, now = colmod.edit_papers(cfg.root, args.slug, add=keys)
+                skipped = [k for k in keys if k not in added]
+                print(f"collection → {len(added)} added to {args.slug}"
+                      + (f" ({len(skipped)} already in it)" if skipped else "")
+                      + (f", {len(minted)} new stub{'' if len(minted) == 1 else 's'}" if minted else "")
+                      + f"  |  now {len(now)} paper{'' if len(now) == 1 else 's'}")
+            for f in failed:
+                print(f"  ⚠ {f}", file=sys.stderr)
+            return 1 if failed else 0
+
+        if action == "remove":
+            if args.slug not in colmod.load_collections(cfg.root):
+                print(f"error: no such collection: {args.slug}", file=sys.stderr)
+                return 1
+            by_doi = keys_by_doi()
+            from .citekey import _norm_doi
+            keys = []
+            for ref in args.refs:
+                m = _DOI.match(ref.strip())
+                keys.append(by_doi.get(_norm_doi(m.group(1)), ref) if m else ref)
+            removed, now = colmod.edit_papers(cfg.root, args.slug, remove=keys)
+            missing = [k for k in keys if k not in removed]
+            print(f"collection → {len(removed)} removed from {args.slug}  |  now "
+                  f"{len(now)} paper{'' if len(now) == 1 else 's'}")
+            for k in missing:
+                print(f"  ⚠ {k}: not in {args.slug}", file=sys.stderr)
+            return 1 if missing else 0
+
+        cols = colmod.load_collections(cfg.root)
+        papers, _ = load_repo(cfg.root)
+        if action == "show":
+            c = cols.get(args.slug)
+            if c is None:
+                print(f"error: no such collection: {args.slug}", file=sys.stderr)
+                return 2
+            ncur = sum(1 for k in c.papers if k in papers and papers[k].curated)
+            print(f"{c.title}  [{args.slug}]" + (f"  {c.date}" if c.date else "")
+                  + f"  — {ncur} curated, {len(c.papers) - ncur} stub/other")
+            if c.note:
+                print(f"  {c.note}")
+            for k in c.papers:
+                print(f"    {label(papers, k)}")
+            return 0
+
+        if not cols:
+            print(f"no collections/ under {cfg.root}  (create one: lit collection new \"<title>\")")
+            return 0
+        for slug, c in sorted(cols.items(), key=lambda kv: (kv[1].date or "", kv[0]), reverse=True):
+            ncur = sum(1 for k in c.papers if k in papers and papers[k].curated)
+            print(f"  {slug:<32} {c.date or '':<10}  {len(c.papers):>3} papers "
+                  f"({ncur} curated)  {c.title}")
+        return 0
+    except colmod.CollectionError as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 1
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="lit", description="literature_graph tools")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -165,6 +292,34 @@ def main(argv: list[str] | None = None) -> int:
     p_top.add_argument("--strict", action="store_true",
                        help="exit non-zero if --orphans flags anything (for CI)")
     p_top.add_argument("--root", default=".", help="data root (topics/, curated/, ...)")
+
+    p_col = sub.add_parser("collection", help="papers gathered for a purpose — a review, a grant, a "
+                                              "talk (SCHEMA §10): create, add/remove papers, list")
+    col = p_col.add_subparsers(dest="action")
+    c_new = col.add_parser("new", help="create an empty collection")
+    c_new.add_argument("title", help='what it is for, as you would search for it, e.g. "Batching review"')
+    c_new.add_argument("--slug", default=None, help="file name stem (default: the title in kebab-case)")
+    c_new.add_argument("--note", default=None, help="free-text gloss: what the papers were gathered for")
+    c_new.add_argument("--date", default=None,
+                       help="ISO date the collection is for (default: today; --date '' for none)")
+    c_add = col.add_parser("add", help="add papers by citekey or DOI; a DOI not yet in the library "
+                                       "becomes a new stub (OpenAlex, else Crossref)")
+    c_add.add_argument("slug", help="the collection")
+    c_add.add_argument("refs", nargs="+", help="citekeys and/or DOIs (10.xxxx/..., doi.org URLs)")
+    c_add.add_argument("--dry-run", action="store_true",
+                       help="resolve and report; write neither the collection nor stubs.yaml")
+    c_rm = col.add_parser("remove", help="drop papers from a collection (the papers stay in the library)")
+    c_rm.add_argument("slug", help="the collection")
+    c_rm.add_argument("refs", nargs="+", help="citekeys and/or DOIs already in the collection")
+    col.add_parser("list", help="every collection, newest first (the default)")
+    c_show = col.add_parser("show", help="one collection's papers, curated and stubs")
+    c_show.add_argument("slug", help="the collection")
+    # --root is accepted before or after the action. SUPPRESS on the actions is what makes that
+    # work: an action that sets no default leaves the value `lit collection --root X` put there.
+    p_col.add_argument("--root", default=".", help="data root (collections/, curated/, stubs.yaml)")
+    for c in col.choices.values():
+        c.add_argument("--root", default=argparse.SUPPRESS,
+                       help="data root (collections/, curated/, stubs.yaml)")
 
     p_prog = sub.add_parser("programme", help="report the programme graph's emergent state: "
                                               "load-bearing assumptions by blast radius, tests at "
@@ -389,6 +544,9 @@ def main(argv: list[str] | None = None) -> int:
             verb = "removed from" if args.remove else "added to"
             print(f"tag → {', '.join(args.tags)} {verb} {args.citekey}  |  now: {shown}")
         return 0
+
+    if args.command == "collection":
+        return _collection(args)
 
     if args.command == "programme":
         from .programme import format_report, report as programme_report

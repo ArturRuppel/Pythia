@@ -49,6 +49,13 @@
   /* topic-mode banner: names what's being shown so a topic search never reads as a text match */
   #searchResults .sr-topic{padding:6px 9px 5px;font-size:11px;letter-spacing:.5px;
     text-transform:uppercase;color:var(--hm-home);border-bottom:1px solid var(--line);margin-bottom:3px}
+  /* a collection hit (SCHEMA §10): its own row above the papers, opened rather than jumped to.
+     The rule on its left is what says "a list, not a paper" before the badge is read. */
+  #searchResults .sr-coll{display:flex;flex-direction:column;gap:2px;padding:7px 9px 7px 7px;cursor:pointer;
+    border-left:2px solid var(--hm-home);margin-bottom:3px}
+  #searchResults .sr-coll:hover{background:var(--bg)}
+  #searchResults .sr-badge.coll{background:var(--hm-home)}
+  #searchResults .sr-note{padding:2px 9px 6px;font-size:11px;color:var(--dim);line-height:1.35}
 
   /* a paper the search jumped to: a brief highlight so the eye lands on it */
   @keyframes foundflash{

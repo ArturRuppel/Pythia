@@ -11,6 +11,7 @@ from pathlib import Path
 from ruamel.yaml.error import YAMLError
 
 from .topics import Topic, load_topics, validate_topics
+from .collection import Collection, CollectionError, load_collections, validate_collections
 from .yamlio import safe_yaml
 
 # The one specific trap worth naming: a sharpened cross-paper ref (`Key2026Journal:c4`, or a
@@ -253,6 +254,10 @@ class Graph:
     # graph either (no edges, nothing emergent reads it), keyed by grant filename stem. Loaded
     # and validated last in build_graph so deleting it changes nothing above.
     narrative: dict[str, "Narrative"] = field(default_factory=dict)
+    # Collections (SCHEMA §10) ride along the same way: papers gathered for a purpose, membership
+    # authored on the collection and never on the paper. Not graph — no edge targets one, nothing
+    # emergent reads one. Loaded and validated last, so deleting collections/ changes nothing above.
+    collections: dict[str, "Collection"] = field(default_factory=dict)
 
 
 class BuildError(Exception):
@@ -773,4 +778,12 @@ def build_graph(root) -> Graph:
     from .narrative import load_narratives, validate_narratives
     g.narrative = load_narratives(root)
     validate_narratives(g.narrative, g)
+    # Collections last of all: they resolve against every container (curated AND stub), and their
+    # slugs must stay clear of every name a ref can resolve to — broad slugs, topics, citekeys.
+    try:
+        g.collections = load_collections(root)
+        validate_collections(g.collections, g.papers,
+                             set(broad) | set(g.topics) | set(g.papers))
+    except CollectionError as e:
+        raise BuildError(str(e)) from e
     return g

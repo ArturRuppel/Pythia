@@ -37,6 +37,11 @@ the rate limiter; never flood. A half-finished graph is a normal, valid state.**
   answers *what papers do I have on X*. A statement that can be **false** is a claim; a
   heading you cannot disagree with is a topic. Topics are never edge targets, and nothing in
   the graph derives from them (SCHEMA §9).
+- **A third axis — purpose:** a **collection** (`collections/`) answers *which papers did I
+  gather for Y* — a peer review, a grant, a talk. Time-bound (dated), membership **authored on
+  the collection** as a citekey list (curated or stub), never on the paper — the mirror image of
+  a topic, whose membership is derived from tags. Never use a tag for purpose: tags say what a
+  paper is *about* and stay true. Not graph, never an edge target (SCHEMA §10).
 - **One extension:** the **programme graph** models what is *proposed* rather than what is
   known — two extra kinds (**Test · Capability**), two extra edges (`discriminates` ·
   `enabled_by`), the **aim** as container (`programme/aims/`), the `@aim` ref sigil, and a
@@ -104,6 +109,10 @@ manual. Viewer behaviour is specified in [docs/](docs/) — see the design index
   matters: unfiled tags, dead keywords and stranded papers — the three signals that stop
   the layer rotting behind the tagging. `--strict` exits non-zero for CI. Run it after a
   tagging session.
+- **`lit collection`** — `new "<title>"` · `add <slug> <citekey|doi>…` · `remove` · `list` ·
+  `show` (SCHEMA §10). **`add` by DOI works for a paper not yet in the library**: it mints the
+  `stubs.yaml` entry from OpenAlex/Crossref (ingest's citekey rules and merge), then adds it.
+  The build fails on a citekey a collection lists but the library lacks.
 - **`lit programme`** — report the programme graph's emergent state: **load-bearing
   assumptions ranked by blast radius** (dependents, no test aimed at them, no grounding —
   what a hostile reviewer finds first), plus speculation, tests at risk from an unevidenced
@@ -137,6 +146,7 @@ reversal each one records.
 | [2026-08-03-topics-and-claim-altitudes.md](docs/2026-08-03-topics-and-claim-altitudes.md) | the synthesis band as **containment**, one box per ladder root. §6 and §6.1 record two reversals — hiding-until-clicked, and altitude columns. **Length is not the defect; unstructured length is.** |
 | [2026-08-03-the-walk-design.md](docs/2026-08-03-the-walk-design.md) | the walk: one focus, one relation, no drawn edges. `contains` is a **roster**, the only complete view, and it flags `unwired` slices |
 | [2026-07-09-cockpit-redesign-in-progress-zone.md](docs/2026-07-09-cockpit-redesign-in-progress-zone.md) §2 | the browse view's collapsible/detachable docked PDF pane — still current. (§§3–4 of the same doc, and [2026-07-28-curation-windows.md](docs/2026-07-28-curation-windows.md) entirely, specify the curation cockpit, retired 2026-08-27 — see CURATION.md) |
+| [2026-10-29-collections.md](docs/2026-10-29-collections.md) | collections (the purpose axis): why not a tag; found by title in search (board: a row above the papers, opened uncapped; app: its own screen); the Topics tab leads with them; the library rail's collection facet |
 | [2026-08-02-programme-graph-design.md](docs/2026-08-02-programme-graph-design.md) | the programme graph and its narrative layer |
 | [2026-08-25-claim-map-design.md](docs/2026-08-25-claim-map-design.md) | the claim map (`prototypes/claim-map/`): the 44 broad claims on one page, x = median year of their papers, y = ladder altitude. §1 records the rejected similarity-embedding proposal, §3 the measurement that rules out a topic band as an axis |
 | [2026-08-05-additive-graph-views.md](docs/2026-08-05-additive-graph-views.md) · [2026-07-19-tags-and-search-design.md](docs/2026-07-19-tags-and-search-design.md) · [2026-06-25-visualization-design.md](docs/2026-06-25-visualization-design.md) | view composition, tags/search, and the original (still unbuilt) recursive container view |

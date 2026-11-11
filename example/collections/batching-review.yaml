@@ -1,0 +1,11 @@
+# Collection (SCHEMA §10) — papers gathered for a purpose, not grouped by subject. Membership
+# is authored here and only here: no paper names its collections, and a stub may be listed
+# (West2015Sigmod is cited but unread, Zhao2014Nsdi not even cited).
+title: "Batching review"
+date: "2026-10-29"
+note: "Related work pulled together for refereeing a (fictional) batching-latency manuscript."
+papers:
+  - Chen2021Sys
+  - Kumar2020Net
+  - West2015Sigmod
+  - Zhao2014Nsdi

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -304,3 +305,68 @@ def ingest(
     # because in a dry run its curated file isn't on disk to be swept up.
     report.stubs_pruned = store.prune_curated_stubs(root, dry_run=dry_run, extra_keys=(citekey,))
     return report
+
+
+@dataclass
+class DoiStub:
+    """What `stub_for_doi` resolved a DOI to. `created` is False when the DOI already named a
+    paper in the library (curated or stub) and nothing was fetched or written."""
+    citekey: str
+    title: str = ""
+    created: bool = False
+    source: str = ""        # "openalex" | "crossref" | "" (already in the library)
+
+
+def stub_for_doi(
+    doi: str,
+    *,
+    root: str | Path,
+    mailto: str = "",
+    dry_run: bool = False,
+    openalex: OpenAlex | None = None,
+    crossref: Crossref | None = None,
+) -> DoiStub:
+    """Resolve a DOI to a citekey in the library, minting a `stubs.yaml` entry when it is not
+    there yet — for `lit collection add`, which must accept a paper nobody has ingested or
+    cited (a paywalled related-work paper may only ever be a stub).
+
+    The stub is built exactly as Stage C builds a reference's: OpenAlex first, Crossref for
+    what OpenAlex has not indexed, the same `<Family><Year><Venue>` key allocated against every
+    key in use (a same-DOI key is reused, a clash gets its a/b/c suffix), and the same additive,
+    comment-preserving `merge_stubs`. Like the focal paper of an ingest, the first author's
+    family name is taken from Crossref's split when OpenAlex supplied the byline, because
+    OpenAlex hands back one display string and splitting "Ana van der Berg" is a guess.
+    """
+    root = Path(root)
+    want = _norm_doi(doi)
+    if not want:
+        raise IngestError(f"not a DOI: {doi!r}")
+    taken = store.load_taken(root)
+    for key, kdoi in taken.items():
+        if _norm_doi(kdoi) == want:
+            return DoiStub(citekey=key, title="", created=False)
+
+    oa = openalex or OpenAlex(mailto=mailto)
+    cr = crossref or Crossref(mailto=mailto)
+    bare = re.sub(r"^https?://(dx\.)?doi\.org/", "", doi.strip(), flags=re.IGNORECASE)
+    work, source = oa.fetch_work(bare), "openalex"
+    if work is None:
+        work, source = cr.fetch_work(bare), "crossref"
+    if work is None:
+        raise IngestError(f"{bare} did not resolve in OpenAlex or Crossref")
+    work.doi = _prefer_casing(bare, work.doi) or bare
+    if source == "openalex":
+        _enrich_names(work, cr.author_names(work.doi))
+
+    fam = work.authors[0].family if work.authors else ""
+    if not fam and work.year is None:
+        raise IngestError(f"{bare}: no first author and no year — cannot build a citekey; "
+                          f"add the stub to stubs.yaml by hand")
+    key = make_citekey(fam, _year_str(work.year), venue_token(work.venue_display), taken, work.doi)
+    stub = Stub(citekey=key, title=work.title, year=work.year, doi=work.doi,
+                type=map_type(work.type_raw),
+                authors=[a.display_name or f"{a.given} {a.family}".strip() for a in work.authors
+                         if a.display_name or a.family],
+                journal=work.venue_display)
+    added, _ = store.merge_stubs(root, [stub], dry_run=dry_run)
+    return DoiStub(citekey=key, title=work.title, created=bool(added), source=source)

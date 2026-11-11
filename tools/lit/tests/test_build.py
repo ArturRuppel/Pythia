@@ -9,7 +9,7 @@ EXAMPLE = Path(__file__).resolve().parents[3] / "example"
 
 def test_to_json_dict_shape():
     d = to_json_dict(build_graph(EXAMPLE))
-    assert set(d) == {"papers", "broad", "stubs", "order", "active", "topics"}
+    assert set(d) == {"papers", "broad", "stubs", "order", "active", "topics", "collections"}
     assert d["active"] == []           # no active list passed → empty (static build carries none)
     # curated paper carries computed slices + edge lists
     p = d["papers"]["Chen2021Sys"]

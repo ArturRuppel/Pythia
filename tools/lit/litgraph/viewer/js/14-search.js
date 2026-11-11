@@ -62,22 +62,64 @@ function renderTopicResults(slug){
   searchResults.innerHTML = hd + body;
   openResults();
 }
+// A collection (SCHEMA §10) is found by its TITLE — "Batching review" — with the same matching
+// rules as a paper: case-insensitive, whitespace-split terms all present. Its slug counts too, so
+// what `lit collection` prints also finds it. The note is deliberately left out: it is prose, and
+// matching "review" in someone's note would surface collections nobody asked for.
+function collectionHits(q){
+  const terms = String(q || "").trim().toLowerCase().split(/\s+/).filter(Boolean);
+  if(!terms.length) return [];
+  return Object.keys(COLLECTIONS).filter(slug => {
+    const blob = (COLLECTIONS[slug].title + " " + slug).toLowerCase();
+    return terms.every(t => blob.includes(t));
+  }).sort((a, b) => (COLLECTIONS[b].date || "").localeCompare(COLLECTIONS[a].date || "") || a.localeCompare(b));
+}
+const _collCount = c => {
+  const n = c.papers.length, cur = c.papers.filter(k => PAPERS[k] && PAPERS[k].cur).length;
+  return `${n} paper${n === 1 ? "" : "s"}${n && cur < n ? ` · ${n - cur} stub${n - cur === 1 ? "" : "s"}` : ""}`;
+};
+function _srColl(slug){
+  const c = COLLECTIONS[slug];
+  return `<div class="sr-coll" data-coll="${esc(slug)}"><div class="sr-t">${esc(c.title)}`
+       + `<span class="sr-badge coll">collection</span></div>`
+       + `<div class="sr-m">${esc([c.date, _collCount(c)].filter(Boolean).join("  ·  "))}</div></div>`;
+}
+// Opening one lists ALL its papers, uncapped: a collection is a list someone made on purpose, so
+// "+12 more — refine the search" would be the wrong answer. The dropdown scrolls (max-height).
+// "collection:<slug>" is the box's query syntax for it, the twin of "topic:<slug>".
+function renderCollectionResults(slug){
+  const c = COLLECTIONS[slug];
+  const rows = c.papers.map(k => searchIndex.find(r => r.key === k)).filter(Boolean);
+  searchResults.innerHTML = `<div class="sr-topic">collection · ${esc(c.title)}`
+    + `${c.date ? " · " + esc(c.date) : ""} · ${_collCount(c)}</div>`
+    + (c.note ? `<div class="sr-note">${esc(c.note)}</div>` : "")
+    + (rows.length ? rows.map(_srRow).join("") : `<div class="sr-none">this collection lists no papers yet</div>`);
+  openResults();
+}
 function renderResults(q){
   if(!searchIndex) searchIndex = buildSearchIndex();
   const q0 = q.trim();
   const topicMatch = /^topic:([a-z0-9][a-z0-9-]*)$/i.exec(q0);
   if(topicMatch && TOPICS[topicMatch[1]]){ renderTopicResults(topicMatch[1]); return; }
+  const collMatch = /^collection:([a-z0-9][a-z0-9-]*)$/i.exec(q0);
+  if(collMatch && COLLECTIONS[collMatch[1]]){ renderCollectionResults(collMatch[1]); return; }
   const terms = q0.toLowerCase().split(/\s+/).filter(Boolean);
   if(!terms.length){ closeSearch(); return; }
   const hits = searchIndex.filter(r => terms.every(t => r.blob.includes(t)));   // AND across terms
+  const colls = collectionHits(q0);                       // above the papers: there are few, and
+  let html = colls.map(_srColl).join("");                 // naming one is a deliberate request
   if(!hits.length){
-    searchResults.innerHTML = `<div class="sr-none">no paper matches “${esc(q)}”</div>`;
+    if(!colls.length) html = `<div class="sr-none">no paper matches “${esc(q)}”</div>`;
   } else {
-    let html = hits.slice(0, SR_CAP).map(_srRow).join("");
+    html += hits.slice(0, SR_CAP).map(_srRow).join("");
     if(hits.length > SR_CAP) html += `<div class="sr-more">+${hits.length - SR_CAP} more — refine the search</div>`;
-    searchResults.innerHTML = html;
   }
+  searchResults.innerHTML = html;
   openResults();
+}
+function openCollection(slug){                            // a collection row → its paper list
+  searchInput.value = `collection:${slug}`;
+  renderCollectionResults(slug);
 }
 function gotoPaper(key){
   closeSearch();
@@ -125,11 +167,14 @@ if(searchInput){
   searchInput.addEventListener("keydown", e => {
     if(e.key === "Escape"){ searchInput.value = ""; closeSearch(); searchInput.blur(); }
     else if(e.key === "Enter"){
-      const first = searchResults.querySelector(".sr-row");
-      if(first) gotoPaper(first.dataset.key);
+      const first = searchResults.querySelector(".sr-row, .sr-coll");
+      if(first && first.dataset.coll) openCollection(first.dataset.coll);
+      else if(first) gotoPaper(first.dataset.key);
     }
   });
   searchResults.addEventListener("click", e => {
+    const coll = e.target.closest(".sr-coll");
+    if(coll){ e.stopPropagation(); openCollection(coll.dataset.coll); return; }
     const row = e.target.closest(".sr-row");
     if(row) gotoPaper(row.dataset.key);
   });
@@ -171,7 +216,7 @@ if(!DETACHED) (function(){
   };
   const SCOPES = {all: "everything", curated: "curated", stub: "uncited stubs"};
   const HEAD = 12, MORE = 60;                          // ranked-facet cap, and what "more" opens it to
-  let scope = "all", sort = "pass", topic = null, author = null, journal = null,
+  let scope = "all", sort = "pass", topic = null, coll = null, author = null, journal = null,
       moreAuth = false, moreJrnl = false, rows = [], view = [];
 
   const leavesByHead = () => Object.entries(TOPICS).filter(([, t]) => t.root)
@@ -293,6 +338,19 @@ if(!DETACHED) (function(){
         + `<div class="lf-note">headings group and can't be filtered; click a container to narrow. `
         + `Topics reach curated papers only — a stub carries no tags.</div>`;
     }
+    // Collections (SCHEMA §10) sit under the topics but are not one: a topic says what a paper is
+    // about, a collection why it was gathered. Unlike a topic, a collection may list stubs, so it
+    // never forces the scope over to curated. Newest first — they are dated, and time-bound.
+    const colls = Object.keys(COLLECTIONS)
+      .sort((a, b) => (COLLECTIONS[b].date || "").localeCompare(COLLECTIONS[a].date || "") || a.localeCompare(b));
+    if(colls.length){
+      html += `<div class="lf-hd">collection</div><div class="tp-leaves">`
+        + colls.map(slug => `<span class="tp-chip${coll === slug ? " on" : ""}" data-coll="${esc(slug)}" `
+            + `title="${esc([COLLECTIONS[slug].date, COLLECTIONS[slug].note].filter(Boolean).join(" · "))}">`
+            + `${esc(COLLECTIONS[slug].title)}<span class="n">${COLLECTIONS[slug].papers.length}</span></span>`).join("")
+        + `</div><div class="lf-note">papers gathered for a purpose — a review, a grant, a talk. `
+        + `Curated papers and stubs alike.</div>`;
+    }
     html += rankedFacet("jrnl", "journal", tallies.jrnl, journal, moreJrnl,
                         "grouped by the citekey's venue token, so a curated paper and the stubs "
                         + "citing the same journal land on one row.")
@@ -309,12 +367,14 @@ if(!DETACHED) (function(){
     if(!rows.length) rows = searchIndex.map(prepare);  // ORDER's ranking, curated-first
     const terms = filterEl.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
     const inTopic = topic ? new Set(TOPICS[topic].papers) : null;
+    const inColl = coll ? new Set(COLLECTIONS[coll].papers) : null;
     // `skip` lifts one facet's own filter, so its list keeps showing the alternatives you could
     // switch to instead of collapsing to the one row you already picked.
     const passes = (r, skip) => {
       if(scope === "curated" && !r.cur) return false;
       if(scope === "stub" && r.cur) return false;
       if(skip !== "topic" && inTopic && !inTopic.has(r.key)) return false;
+      if(inColl && !inColl.has(r.key)) return false;
       if(skip !== "jrnl" && journal && r.venue !== journal) return false;
       if(skip !== "auth" && author && !r.auth.some(a => a.id === author)) return false;
       return terms.every(t => r.blob.includes(t));
@@ -334,7 +394,7 @@ if(!DETACHED) (function(){
     const cmp = SORTS[sort].cmp;
     if(cmp) view = view.slice().sort(cmp);
     countEl.textContent = `${view.length} of ${rows.length}`;
-    clearEl.hidden = !(topic || author || journal || terms.length
+    clearEl.hidden = !(topic || coll || author || journal || terms.length
                        || scope !== "all" || sort !== "pass");
     const keepScroll = facets.scrollTop;               // the rail re-renders on every keystroke
     renderFacets(tallies);
@@ -398,14 +458,14 @@ if(!DETACHED) (function(){
   addEventListener("resize", () => { if(isOpen()) paint(); });
   filterEl.addEventListener("input", () => { scroll.scrollTop = 0; recompute(); });
   clearEl.addEventListener("click", () => {
-    scope = "all"; sort = "pass"; topic = null; author = null; journal = null;
+    scope = "all"; sort = "pass"; topic = null; coll = null; author = null; journal = null;
     moreAuth = moreJrnl = false; filterEl.value = "";
     scroll.scrollTop = 0; recompute();
   });
   facets.addEventListener("click", e => {
     const sc = e.target.closest("[data-scope]"), so = e.target.closest("[data-sort]"),
           ch = e.target.closest(".tp-chip"), rw = e.target.closest("[data-auth],[data-jrnl]"),
-          mo = e.target.closest("[data-more]");
+          mo = e.target.closest("[data-more]"), co = e.target.closest("[data-coll]");
     if(sc) scope = sc.dataset.scope;
     else if(so) sort = so.dataset.sort;
     else if(mo){                                         // open/close a ranked facet's tail
@@ -416,6 +476,7 @@ if(!DETACHED) (function(){
       if(rw.dataset.auth !== undefined) author = author === rw.dataset.auth ? null : rw.dataset.auth;
       else journal = journal === rw.dataset.jrnl ? null : rw.dataset.jrnl;
     }
+    else if(co) coll = coll === co.dataset.coll ? null : co.dataset.coll;
     else if(ch){
       topic = topic === ch.dataset.slug ? null : ch.dataset.slug;
       if(topic && scope === "stub") scope = "curated";   // a stub can't carry a topic; say so by moving
