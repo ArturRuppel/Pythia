@@ -855,3 +855,22 @@ def test_the_page_carries_the_offline_client(srv):
     assert 'navigator.serviceWorker.register("sw.js")' in text
     assert "window.isSecureContext" in text
     assert ":not(#offline){display:none!important}" in text   # the chip survives the app view
+
+
+def test_views_serve_only_their_page_types(srv):
+    """A view directory also holds its tooling (verify.py, serve.py) — never served."""
+    from litgraph.serve import _available_views, _PROTOTYPES
+    views = _available_views()
+    if not views:
+        pytest.skip("no prototypes/ tree beside this install")
+    slug = views[0]["slug"]
+    tooling = [f for f in (_PROTOTYPES / slug).iterdir() if f.is_file()
+               and f.suffix not in (".html", ".js", ".css", ".json")]
+    assert tooling, "expected a tooling file in the view directory"
+    for f in tooling:
+        assert get(srv, f"/views/{slug}/{f.name}")[0] == 404, f.name
+    assert get(srv, f"/views/{slug}/")[0] == 200
+    js = next((f for f in (_PROTOTYPES / slug).iterdir() if f.suffix == ".js"), None)
+    if js:
+        status, headers, _ = get(srv, f"/views/{slug}/{js.name}")
+        assert status == 200 and headers["Content-Type"] == "application/javascript"

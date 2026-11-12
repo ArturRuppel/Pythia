@@ -495,12 +495,14 @@ class _Handler(BaseHTTPRequestHandler):
                                       self._payload().encode())
                 base = (_PROTOTYPES / name).resolve()
                 target = (base / (rest or "index.html")).resolve()
-                # containment check: a crafted `rest` must not escape the view's own directory
-                if not target.is_file() or base not in target.parents:
+                # containment check: a crafted `rest` must not escape the view's own directory;
+                # and only the servable types — a view directory also holds its tooling
+                # (verify.py, serve.py, *.mjs), which is not part of the page
+                if (not target.is_file() or base not in target.parents
+                        or target.suffix not in _VIEW_TYPES):
                     return self._send(HTTPStatus.NOT_FOUND, "text/plain; charset=utf-8",
                                       b"not found\n")
-                ctype = _VIEW_TYPES.get(target.suffix, "application/octet-stream")
-                return self._send(HTTPStatus.OK, ctype, target.read_bytes())
+                return self._send(HTTPStatus.OK, _VIEW_TYPES[target.suffix], target.read_bytes())
             if path == "/preview.html":
                 # one container's local subgraph in isolation — the exact `lit preview` view
                 # (real `isolate()` + the shared template), for reviewing an in-progress paper
