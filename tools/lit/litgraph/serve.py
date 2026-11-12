@@ -162,6 +162,13 @@ def _available_views() -> list[dict]:
 # does. Versions are stats, never hashes of the bodies — the list is fetched on every app open and
 # covers ~1 GB of PDFs, so it has to cost a directory walk and not a read.
 
+# Bumped whenever the rules that turn the same YAML into a different payload change (a new
+# sanitising rule, say). The offline versions below are otherwise pure file stats of the library,
+# so without it a device that synced before an upgrade would keep the old graph until the next
+# YAML edit happened to touch it.
+_PAYLOAD_REV = "1"
+
+
 def _file_version(p: Path) -> str:
     st = p.stat()
     return f"{st.st_size:x}-{st.st_mtime_ns:x}"
@@ -192,7 +199,7 @@ def offline_manifest(root: Path, pdf_dir: Path) -> dict:
     files, and the alternative views; `size` is null where knowing it would mean building the
     body. The PDFs are every `<citekey>.pdf` the server would hand out at /pdf/."""
     latest, n = _source_version(root, pdf_dir)
-    source = f"{latest:x}-{n:x}"
+    source = f"{latest:x}-{n:x}-r{_PAYLOAD_REV}"
     pdfs = (sorted(f for f in pdf_dir.glob("*.pdf") if _PDF_NAME.match(f.name))
             if pdf_dir.is_dir() else [])
     views = _available_views()

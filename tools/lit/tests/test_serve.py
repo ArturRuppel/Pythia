@@ -1029,3 +1029,16 @@ def test_stub_abstract_markup_is_made_safe(srv):
     status, _, body = get(srv, "/stub-abstract?key=Bench2016Tools")
     assert status == 200
     assert json.loads(body) == {"abstract": "The <i>RAS</i> gene.&lt;img src=x onerror=alert(1)>"}
+
+
+def test_a_payload_rule_change_resyncs_the_offline_graph(repo, monkeypatch):
+    """The graph's offline version is library stats plus a payload revision, so a code change
+    that rewrites the payload (the sanitiser) reaches a device that synced before it."""
+    import litgraph.serve as serve_mod
+    def versions():
+        shell = serve_mod.offline_manifest(repo, repo / "pdfs")["shell"]
+        return {e["url"]: e["version"] for e in shell if e["url"] in ("./", "graph.json")}
+    before = versions()
+    monkeypatch.setattr(serve_mod, "_PAYLOAD_REV", "test-bump")
+    after = versions()
+    assert after["graph.json"] != before["graph.json"] and after["./"] != before["./"]
