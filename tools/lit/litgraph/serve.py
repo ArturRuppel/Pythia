@@ -43,6 +43,7 @@ from litgraph.config import load_config
 from litgraph.graph import BuildError, build_graph
 from litgraph.preview import isolate, isolate_proposal, narrative_key
 from litgraph.quotes import JOIN
+from litgraph.sanitize import safe_html
 from litgraph.sources.openalex import OpenAlex
 
 # strictly <citekey>.<ext> — one flat name, no separators, so /pdf/ can't traverse out
@@ -784,7 +785,8 @@ class _Handler(BaseHTTPRequestHandler):
                 if srv._oa is None:
                     srv._oa = OpenAlex(mailto=load_config(srv.root).mailto)
                 work = srv._oa.fetch_work(doi)
-                abstract = work.abstract if work else None
+                # third-party text the viewer renders as HTML: the payload's one rule applies
+                abstract = safe_html(work.abstract) if work else None
             except Exception:
                 abstract = None
         srv._abs_cache[key] = abstract

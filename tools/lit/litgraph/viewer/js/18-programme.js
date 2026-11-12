@@ -35,7 +35,7 @@ function renderNarrative(id, p, box){
   for (const sec of secs) {
     const col = grpCollapsed.has(`${id}::${sec.title}`);
     html += `<div class="sgrp nsec" data-grp="${esc(sec.title)}">`
-          + `<span class="gcar">${col ? "▸" : "▾"}</span>${sec.title}`
+          + `<span class="gcar">${col ? "▸" : "▾"}</span>${rich(sec.title)}`
           + `<span class="gct">${sec.bullets.length}</span></div>`;
     if (col) continue;                       // header only — the section's prose folds away
     html += `<div class="sgrpb">`;
@@ -49,7 +49,7 @@ function renderNarrative(id, p, box){
       const n = s.nref || 0;
       html += `<div class="slice nbul" data-sid="${s.id}">`
             + `<span class="sid nb">${s.id}</span>`
-            + `<span class="stx">${s.text}</span>`
+            + `<span class="stx">${rich(s.text)}</span>`
             + (n ? `<span class="nrf" title="${n} source${n === 1 ? "" : "s"} — open the card to`
                  + ` draw them, hover this line to light just these">${n}</span>`
                  : `<span class="nrf none" title="nothing cited yet">—</span>`)

@@ -66,11 +66,23 @@ addEventListener("click", e => {
 // under `lit serve`, cached for the session, and never written to disk. Static `lit build`
 // (no server, no LIVE) just shows the bib-only note.
 const esc = s => String(s).replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+// `rich` is esc for text that may carry real inline formatting: escape everything, let the six
+// attribute-free tags `i b em strong sub sup` back through, leave an entity that is already one
+// alone. It is the build's rule (litgraph/sanitize.py `safe_html`) seen from the viewer side —
+// the payload's third-party strings already passed through that, and are unchanged by this — and
+// it is what every board sink that writes a title, abstract, author, claim or note as HTML uses,
+// so curated prose quoting maths (`<Du>`) shows as text instead of vanishing as an unknown tag.
+// A function declaration so any module, however early, can call it. TEXT CONTENT ONLY.
+function rich(s){
+  return String(s == null ? "" : s)
+    .replace(/&(?!#?\w+;)/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/&lt;(\/?)(i|b|em|strong|sub|sup)&gt;/g, "<$1$2>");
+}
 const stubAbsCache = new Map();          // citekey -> string | null (none/failed) | undefined (in-flight)
 function stubAbstract(key, p){
   if (!LIVE || !p.doi) return `<div class="nopdf">uncurated stub — bib metadata only</div>`;
   const cached = stubAbsCache.get(key);
-  if (typeof cached === "string") return `<div class="tabs">${esc(cached)}</div>`;
+  if (typeof cached === "string") return `<div class="tabs">${rich(cached)}</div>`;
   if (cached === null) return `<div class="nopdf">uncurated stub — no abstract available</div>`;
   fetchStubAbstract(key);                // unfetched: kick it off, show a pending note this render
   return `<div class="nopdf" id="tabsPending">fetching abstract…</div>`;
@@ -88,7 +100,7 @@ async function fetchStubAbstract(key){
   if (tip.dataset.key === key && tip.style.display === "block") {
     const slot = tip.querySelector("#tabsPending");
     if (slot) slot.outerHTML = (typeof text === "string")
-      ? `<div class="tabs">${esc(text)}</div>`
+      ? `<div class="tabs">${rich(text)}</div>`
       : `<div class="nopdf">uncurated stub — no abstract available</div>`;
   }
 }
@@ -112,8 +124,8 @@ function showTip(e, key, el, force){
   else thumb = stubAbstract(key, p);   // uncurated: no PDF — show the abstract (live-fetched) instead
   const auth = (p.authors && p.authors.length) ? `<div class="tauth">${authLine(p.authors)}</div>` : "";
   const bib = [p.journal || venueFromKey(key), p.year].filter(Boolean).join(" · ");
-  tip.innerHTML = `<div class="ttitle">${p.title || key}</div>${auth}`
-                + `<div class="meta">${bib}</div>${thumb}`;
+  tip.innerHTML = `<div class="ttitle">${rich(p.title || key)}</div>${auth}`
+                + `<div class="meta">${rich(bib)}</div>${thumb}`;
   // pin beside the hovered card — right of it, flipping left when there's no room — NOT
   // at the cursor, so the pointer can travel into the tip to read a long author list
   const r = ((el && el.closest(".card")) || el || e.target).getBoundingClientRect();

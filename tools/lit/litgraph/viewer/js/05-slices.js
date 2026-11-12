@@ -141,7 +141,7 @@ function renderGraph(id, key, p, box){
       html += `<div class="slice${pdf}${cit}${folded.has(sid) ? " fold" : ""}" data-sid="${s.id}"`
             + ` title="click to fold this slice to its badge">`
             + `<span class="sid ${SID_CLASS[s.color] || 'cl'}${ans}">${s.id}</span>`
-            + `<span class="stx">${s.text}</span>`
+            + `<span class="stx">${rich(s.text)}</span>`
             + `<span class="fkd">${s.kind}</span>`
             + `</div>`;
     }
@@ -284,7 +284,7 @@ function renderSlices(id){
           + `<span class="car">${can ? (isOpen ? "▾" : "▸") : "·"}</span>`
           + (lad ? `<span class="gmk">⤴</span>` : ``)
           + `<span class="sid ${SID_CLASS[s.color] || 'cl'}${ans}">${s.id}</span>`
-          + `<span class="stx">${s.text}${xref(s)}</span>`
+          + `<span class="stx">${rich(s.text)}${xref(s)}</span>`
           // the one thing a jury finds first: what the aim rests on with nothing under it
           + (s.lb ? `<span class="lb" title="load-bearing: ${s.br} dependent${s.br === 1 ? '' : 's'}, no test aimed at it">${s.br}✕</span>` : ``)
           // …and its mirror: the test aimed at this claim, so a rival names its own referee

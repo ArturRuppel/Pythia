@@ -234,8 +234,11 @@ def test_cli_build_reports_validation_error(tmp_path, capsys):
 def test_emit_escapes_script_close_in_inlined_json(tmp_path):
     # a paper whose text contains "</script>" must not break the self-contained page
     (tmp_path / "curated").mkdir()
+    # (the title is third-party and is sanitised on the way in — tests/test_sanitize.py — so the
+    # raw "</script>" rides in the curator's own `note`, which reaches the payload unchanged)
     (tmp_path / "curated" / "Evil2020Jrnl.yaml").write_text(
         'title: "danger </script><b>x</b>"\ntype: original\nyear: 2020\n'
+        'note: "mine </script><b>y</b>"\n'
         'authors: [{name: "A, B"}]\n')
     out = tmp_path / "dist"
     emit(build_graph(tmp_path), out)
@@ -243,9 +246,10 @@ def test_emit_escapes_script_close_in_inlined_json(tmp_path):
     # the only literal </script> is the real closing tag (data occurrence is escaped)
     assert html.count("</script>") == 1
     assert "\\u003c/script>" in html
-    # graph.json keeps the raw (unescaped) value and round-trips
+    # graph.json keeps the note's raw (unescaped) value and round-trips; the title is made safe
     data = json.loads((out / "graph.json").read_text())
-    assert data["papers"]["Evil2020Jrnl"]["title"] == "danger </script><b>x</b>"
+    assert data["papers"]["Evil2020Jrnl"]["note"] == "mine </script><b>y</b>"
+    assert data["papers"]["Evil2020Jrnl"]["title"] == "danger &lt;/script><b>x</b>"
 
 
 def test_stub_payload_carries_authors_and_journal():

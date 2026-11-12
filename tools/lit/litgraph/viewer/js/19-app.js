@@ -23,9 +23,9 @@
   // Slice text is prose that quotes maths (`<Du>`, `<sigma_xx>`) and titles that carry a few
   // real tags (`<i>RAS</i>`) or entities (`&amp;`). Escape everything, then let the handful of
   // inline formatting tags back through, and leave an entity that is already an entity alone.
-  const tx = s => String(s == null ? "" : s)
-    .replace(/&(?!#?\w+;)/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-    .replace(/&lt;(\/?)(i|b|em|strong|sub|sup)&gt;/g, "<$1$2>");
+  // That is `rich` (09-live.js), the viewer's one rule for it — shared, so the app and the board
+  // cannot drift on what a title may carry.
+  const tx = rich;
   const plural = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
   const person = n => { const i = n.indexOf(", "); return i < 0 ? n : `${n.slice(i + 2)} ${n.slice(0, i)}`; };
   // The paper page shows the whole byline: it is the one place you go to see who wrote it.

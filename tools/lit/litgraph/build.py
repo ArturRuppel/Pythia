@@ -8,6 +8,7 @@ import shutil
 from pathlib import Path
 
 from litgraph.graph import Aim, BuildError, Graph, Paper, Slice, classify_ref
+from litgraph.sanitize import safe_authors, safe_html
 from litgraph.topics import keyword_closure, papers_in
 from litgraph.topics import roots as topic_roots
 
@@ -134,8 +135,10 @@ def _paper_json(p: Paper, builds: list[dict]) -> dict:
         "cur": p.curated, "pass": p.pass_, "validated": p.validated,
         "type": p.type, "year": p.year,
         "curation_updated": p.curation_updated,
-        "title": p.title, "authors": [[n, pos, corr] for n, pos, corr in p.authors],
-        "tags": p.tags, "note": p.note, "abs": p.abstract, "head": p.head,
+        # title / authors / abstract came from OpenAlex, Crossref or the PDF: third-party markup
+        # the viewer renders as HTML, so it is made safe here, once (litgraph.sanitize)
+        "title": safe_html(p.title), "authors": safe_authors(p.authors),
+        "tags": p.tags, "note": p.note, "abs": safe_html(p.abstract), "head": p.head,
         "slices": [_slice_json(s) for s in p.slices],
         "grounds": _grounds(p), "lateral": _lateral(p), "cons": _cons(p),
         "ans": _answers(p), "builds": builds,
@@ -252,9 +255,9 @@ def to_json_dict(g: Graph, include_aims: bool = False) -> dict:
     curated = {ck: _paper_json(p, builds.get(ck, [])) for ck, p in g.papers.items() if p.curated}
     if include_aims:
         curated |= {slug: _aim_json(a, builds.get(slug, [])) for slug, a in g.aims.items()}
-    stubs = {ck: {"title": p.title, "year": p.year, "type": p.type, "doi": p.doi,
-                  "journal": p.journal,
-                  "authors": [[n, pos, corr] for n, pos, corr in p.authors]}
+    # a stub is nothing but a fetched bib record — every string in it is third-party
+    stubs = {ck: {"title": safe_html(p.title), "year": p.year, "type": p.type, "doi": p.doi,
+                  "journal": safe_html(p.journal), "authors": safe_authors(p.authors)}
              for ck, p in g.papers.items() if not p.curated}
     broad = {slug: {"kind": b.kind, "title": b.title, "text": b.text,
                     "meter": ({"s": b.support, "c": b.contradict}

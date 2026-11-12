@@ -57,14 +57,14 @@ function vstat(p){
   return `<span class="vstat" title="${title}">${passCircle(v || 0, m).replace(/ title="[^"]*"/, "")}${mark}</span>`;
 }
 function authLine(a){return a.map(([n, pos, corr]) =>
-  corr ? `<span class="star">${n}*</span>` : n).join(' · ');}
+  corr ? `<span class="star">${rich(n)}*</span>` : rich(n)).join(' · ');}
 // An uncited stub is on screen as a reference, not as a bibliography entry to be read end to end,
 // so a 25-name byline is 25 lines of noise. Compact to the ends of the byline — which is how the
 // paper gets cited anyway — keeping the corresponding-author mark. Under six names it is already
 // short enough to print in full. (Curated cards print the full byline, everywhere they stand.)
 function shortAuthLine(a){
   if (a.length < 6) return authLine(a);
-  const one = ([n, , corr]) => corr ? `<span class="star">${n}*</span>` : n;
+  const one = ([n, , corr]) => corr ? `<span class="star">${rich(n)}*</span>` : rich(n);
   const corr = a.filter(x => x[2]).map(one);
   const ends = [one(a[0]), ...(corr.length ? corr : [one(a[a.length - 1])])];
   return `${ends[0]} · … · ${ends.slice(1).join(' · ')} <span class="anum">(${a.length} authors)</span>`;
@@ -143,21 +143,21 @@ function paperCard(key, level){
     // verbatim (showTip) — two renderings of one fact disagreeing is worse than the mild
     // redundancy of naming a venue the citekey above already spells.
     const venue = p.journal || venueFromKey(key);
-    body += `<div class="ctitle">${p.title || ""}</div>`;
+    body += `<div class="ctitle">${rich(p.title || "")}</div>`;
     if (p.authors && p.authors.length) body += `<div class="cauth">${shortAuthLine(p.authors)}</div>`;
     if (venue) body += `<div class="cbib">${esc(venue)}</div>`;
   }
   if (cur) {
-    body += `<div class="ctitle">${p.title}</div>`;
+    body += `<div class="ctitle">${rich(p.title)}</div>`;
     if (narr) {
       // nothing between the title and the prose: a narrative's body IS its sections, and it
       // carries no abstract, byline or note to stand in front of them.
     } else if (aim) {
       const [punch, pitch] = splitNote(p.note);
-      if (punch) body += `<div class="cpunch">${punch}</div>`;
+      if (punch) body += `<div class="cpunch">${rich(punch)}</div>`;
       const stat = aimStat(p);
       if (stat) body += `<div class="cstat">${stat}</div>`;
-      if (pitch) body += `<div class="cnote">${pitch}</div>`;
+      if (pitch) body += `<div class="cnote">${rich(pitch)}</div>`;
     } else {
       if (p.authors) body += `<div class="cauth">${authLine(p.authors)}</div>`;
       // The abstract is 200 words of someone else's prose sitting between the byline and the
@@ -165,7 +165,7 @@ function paperCard(key, level){
       // fold: an open card offers the WORD, and the paragraph arrives when it is asked for.
       // (Inline, desktop and touch alike — the hover tip carries the PDF thumbnail, not this.)
       if (p.abs) body += `<div class="cabsx"><span class="acar"></span>abstract</div>`
-                       + `<div class="cabs">${p.abs}</div>`;
+                       + `<div class="cabs">${rich(p.abs)}</div>`;
     }
     body += `<div class="slices"></div>`;   // filled by renderSlices from the drill state
   }
@@ -224,7 +224,7 @@ function toggleStub(key){
 function stubDetail(key, p){
   const venue = p.journal || venueFromKey(key);
   return `<div class="sdet">`
-       + (p.title ? `<div class="st">${p.title}</div>` : "")
+       + (p.title ? `<div class="st">${rich(p.title)}</div>` : "")
        + (p.authors && p.authors.length ? `<div class="sa">${shortAuthLine(p.authors)}</div>` : "")
        + (venue ? `<div class="sj">${esc(venue)}</div>` : "")
        + `</div>`;

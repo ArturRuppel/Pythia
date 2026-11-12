@@ -79,7 +79,7 @@ function broadCard(slug,level,rung){
   el.id="card-"+id; el.dataset.id=id; el.dataset.slug=slug;
   let m = b.meter?`<div class="meter"><span class="s">▲ ${b.meter.s} support</span><span class="c">▼ ${b.meter.c} contradict</span></div>`:'';
   // optional `title` (SCHEMA §4): the at-a-glance name, with the full statement as its gloss
-  let t = b.title?`<div class="btl">${b.title}</div>`:'';
+  let t = b.title?`<div class="btl">${rich(b.title)}</div>`:'';
   // TWO READOUTS, no controls — see showBroad. Both report what the card's own click did, split by
   // what lies one step below this claim: narrower claims (up the ladder) and papers (at the foot of
   // it). A claim can have either, both, or neither; a leaf carries no affordance it cannot honour.
@@ -108,7 +108,7 @@ function broadCard(slug,level,rung){
   const av=alt.length?`<div class="balso" title="this claim ladders into more than one broader`
           +` claim; it is nested under the first its leads_to names and referenced under the rest">`
           +`also under ${alt.map(r=>"“"+esc(broadTitle(r))+"”").join(" · ")}</div>`:"";
-  el.innerHTML=`<div class="bkd">${b.kind}</div>${t}<div class="btx">${b.text}</div>${m}${av}`
+  el.innerHTML=`<div class="bkd">${esc(b.kind)}</div>${t}<div class="btx">${rich(b.text)}</div>${m}${av}`
               +(dn?`<div class="bdrills">${dn}</div>`:"")+dp;
   // the statement a folded rung trades away is one hover from coming back
   if(rung) el.title=b.text;

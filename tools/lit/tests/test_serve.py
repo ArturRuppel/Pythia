@@ -1015,3 +1015,17 @@ def test_views_serve_only_their_page_types(srv):
     if js:
         status, headers, _ = get(srv, f"/views/{slug}/{js.name}")
         assert status == 200 and headers["Content-Type"] == "application/javascript"
+
+
+def test_stub_abstract_markup_is_made_safe(srv):
+    from litgraph.model import Work
+
+    class FakeOA:
+        def fetch_work(self, doi):
+            return Work(doi=doi, title="t", year=2016, type_raw="article", venue_display="V",
+                        abstract='<jats:p>The <i>RAS</i> gene.<img src=x onerror=alert(1)></jats:p>')
+
+    srv._oa = FakeOA()
+    status, _, body = get(srv, "/stub-abstract?key=Bench2016Tools")
+    assert status == 200
+    assert json.loads(body) == {"abstract": "The <i>RAS</i> gene.&lt;img src=x onerror=alert(1)>"}
