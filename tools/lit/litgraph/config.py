@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import tomllib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 
@@ -12,6 +12,9 @@ class Config:
     root: Path  # holds curated/, stubs.yaml
     pdf_dir: Path | None  # external PDF dir (informational; rename happens beside the PDF)
     mailto: str  # OpenAlex/Crossref polite pool
+    # extra Host names `lit serve` answers to beyond loopback (`name` or `name:port`) — the public
+    # name of a reverse proxy in front of a loopback bind. See litgraph.serve.
+    allowed_hosts: list[str] = field(default_factory=list)
 
 
 def load_config(root: str | Path) -> Config:
@@ -29,5 +32,15 @@ def load_config(root: str | Path) -> Config:
         root=Path(data.get("root", root)),
         pdf_dir=Path(pdf_dir) if pdf_dir else None,
         mailto=data.get("mailto", ""),
+        allowed_hosts=_str_list(data.get("allowed_hosts")),
     )
+
+
+def _str_list(value) -> list[str]:
+    """A TOML list of strings, or one comma/space-separated string, as a list."""
+    if not value:
+        return []
+    if isinstance(value, str):
+        return [v for v in value.replace(",", " ").split() if v]
+    return [str(v) for v in value]
 

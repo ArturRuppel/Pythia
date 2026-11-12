@@ -30,3 +30,11 @@ def test_a_leftover_curation_table_loads_and_is_ignored(tmp_path):
 
 def test_the_reading_list_writer_is_gone():
     assert not hasattr(config, "set_active")
+
+
+def test_allowed_hosts_load_as_a_list_or_a_string(tmp_path):
+    assert load_config(tmp_path).allowed_hosts == []
+    (tmp_path / "config.toml").write_text('allowed_hosts = ["box.example.net", "other:8443"]\n')
+    assert load_config(tmp_path).allowed_hosts == ["box.example.net", "other:8443"]
+    (tmp_path / "config.toml").write_text('allowed_hosts = "a.example, b.example"\n')
+    assert load_config(tmp_path).allowed_hosts == ["a.example", "b.example"]

@@ -93,6 +93,58 @@ _VIEW_TYPES = {".html": "text/html; charset=utf-8", ".js": "application/javascri
                ".css": "text/css; charset=utf-8", ".json": "application/json; charset=utf-8"}
 
 
+# ── who may talk to this server ─────────────────────────────────────────────────────────────
+# Binding loopback keeps the LAN out, but not a web page: any page open in the curator's browser
+# can send requests to 127.0.0.1, and two tricks turn that into reads and writes.
+#   * DNS rebinding — a hostile name re-pointed at 127.0.0.1 makes the browser treat this server
+#     as that page's own origin, so it can *read* graph.json and the PDFs. The tell is the Host
+#     header, which still carries the hostile name: only names on the allow-list are answered.
+#   * A blind cross-site POST — `fetch(..., {mode: "no-cors"})` with a text/plain body needs no
+#     preflight, so it reaches /validate or /quote_loc without the page reading anything back.
+#     A write therefore needs `Content-Type: application/json` (which a cross-site page cannot
+#     send without a preflight this server never answers) and an Origin, when there is one, that
+#     is this server itself. No Origin at all is a non-browser client — curl, `lit`, an agent on
+#     loopback — and stays allowed.
+# Behind a reverse proxy that keeps the Host header (Tailscale Serve does: the browser's
+# `https://<machine>.<tailnet>.ts.net:<port>` arrives as Host `<machine>.<tailnet>.ts.net:<port>`)
+# the proxy's public name has to be allowed explicitly: `lit serve --allow-host NAME`, the
+# LIT_ALLOWED_HOSTS environment variable, or `allowed_hosts = [...]` in config.toml.
+LOOPBACK_HOSTS = frozenset({"127.0.0.1", "localhost", "::1"})
+
+
+def split_hostport(value: str) -> tuple[str, str | None]:
+    """`host[:port]` (Host-header / allow-list syntax, `[v6]:port` too) → (lowercased host, port)."""
+    v = value.strip().lower()
+    if v.startswith("["):
+        host, _, rest = v[1:].partition("]")
+        return host, (rest[1:] if rest.startswith(":") and rest[1:] else None)
+    if v.count(":") == 1:
+        host, _, port = v.partition(":")
+        return host, (port or None)
+    return v, None                         # a bare name, or an unbracketed IPv6 literal
+
+
+def parse_allowed_hosts(*sources) -> frozenset[str]:
+    """Normalise allow-list entries from any mix of lists and comma/space-separated strings.
+
+    An entry is `name` (any port) or `name:port`. Empty entries are ignored."""
+    out: set[str] = set()
+    for src in sources:
+        if not src:
+            continue
+        items = re.split(r"[,\s]+", src) if isinstance(src, str) else src
+        for item in items:
+            item = str(item).strip()
+            if item:
+                host, port = split_hostport(item)
+                out.add(f"{host}:{port}" if port else host)
+    return frozenset(out)
+
+
+def _host_listed(host: str, port: str | None, allowed) -> bool:
+    return host in allowed or (port is not None and f"{host}:{port}" in allowed)
+
+
 def _available_views() -> list[dict]:
     """The prototype views actually present on disk, for the HUD dropdown."""
     if not _PROTOTYPES.is_dir():
@@ -336,13 +388,21 @@ def _source_version(root: Path, pdf_dir: Path) -> tuple[int, int]:
 class _Server(ThreadingHTTPServer):
     daemon_threads = True
 
-    def __init__(self, address, root: Path, pdf_dir: Path, read_only: bool = False):
+    def __init__(self, address, root: Path, pdf_dir: Path, read_only: bool = False,
+                 allowed_hosts=()):
         self.root = Path(root)
         self.pdf_dir = Path(pdf_dir)
         # A mirror serves a checkout it does not own — one `git pull` away from having any local
         # edit clobbered. Read-only refuses the one endpoint that writes synced content (see the
         # `_MUTATING` note below) rather than letting it write into a tree that will be overwritten.
         self.read_only = read_only
+        # Host names this server answers to beyond loopback (see "who may talk to this server").
+        # The bind address itself is added when it is a specific one: whoever binds 192.0.2.7
+        # will type 192.0.2.7. A wildcard bind adds nothing — name the hosts you serve.
+        self.allowed_hosts = parse_allowed_hosts(allowed_hosts)
+        bind = str(address[0]).strip("[]").lower()
+        self.host_names = (LOOPBACK_HOSTS | self.allowed_hosts
+                           | ({bind} if bind not in ("", "0.0.0.0", "::") else set()))
         # the built graph.json body, memoized against `_source_version`. `lit serve` rebuilds
         # from YAML on every request by design — that is what makes edit-and-refresh work — but
         # an unchanged repo rebuilding is pure waste, and on a small always-on host it is the
@@ -383,6 +443,57 @@ class _Handler(BaseHTTPRequestHandler):
         self.end_headers()
         if self.command != "HEAD":
             self.wfile.write(body)
+
+    def _refuse(self, status: int, why: str) -> None:
+        return self._send(status, "text/plain; charset=utf-8", f"{why}\n".encode())
+
+    def _host_ok(self) -> bool:
+        """The Host header names this server (loopback, the bind address, or an allowed name).
+
+        A request with no Host header at all is not a browser (every browser sends one, and a
+        rebinding attack is a browser by definition), so it is let through."""
+        raw = self.headers.get("Host")
+        if raw is None:
+            return True
+        host, port = split_hostport(raw)
+        return _host_listed(host, port, self.server.host_names)
+
+    def _bad_host(self) -> None:
+        return self._refuse(HTTPStatus.FORBIDDEN,
+                            "unrecognised Host header; to serve under this name, pass "
+                            "`lit serve --allow-host NAME` (or set LIT_ALLOWED_HOSTS, or "
+                            "allowed_hosts in config.toml)")
+
+    def _write_refusal(self) -> tuple[int, str] | None:
+        """Why a POST must be refused before its body is read, or None when it may proceed.
+
+        Cross-site first (Sec-Fetch-Site, then Origin), then the body's type. The Origin must be
+        this server — scheme-default port aside, exactly the request's own Host — or an allowed
+        entry that names a port (`name:port`). A port-less allow entry admits the name as a Host
+        on any port, but never as a foreign *origin*: another app on the same machine name, or on
+        127.0.0.1, is a different origin and may not write here."""
+        if self.headers.get("Sec-Fetch-Site", "").strip().lower() == "cross-site":
+            return HTTPStatus.FORBIDDEN, "cross-site request refused"
+        origin = self.headers.get("Origin")
+        if origin is not None:
+            o = urlparse(origin.strip())
+            if o.scheme not in ("http", "https") or not o.hostname:
+                return HTTPStatus.FORBIDDEN, "cross-origin request refused"
+            default = "443" if o.scheme == "https" else "80"
+            try:
+                oport = str(o.port or default)
+            except ValueError:
+                return HTTPStatus.FORBIDDEN, "cross-origin request refused"
+            ohost = o.hostname.lower()
+            rhost, rport = split_hostport(self.headers.get("Host", ""))
+            # a Host without a port is the scheme's default port (a proxy on 443, say)
+            same = ohost == rhost and oport == (rport or default)
+            if not (same or f"{ohost}:{oport}" in self.server.allowed_hosts):
+                return HTTPStatus.FORBIDDEN, "cross-origin request refused"
+        ctype = self.headers.get("Content-Type", "").split(";", 1)[0].strip().lower()
+        if ctype != "application/json":
+            return HTTPStatus.UNSUPPORTED_MEDIA_TYPE, "POST bodies must be application/json"
+        return None
 
     def _send_cached(self, ctype: str, body_fn, etag: str, cache: str = _IMG_CACHE) -> None:
         """Serve a PDF-derived body under an ETag, answering a matching `If-None-Match` with a
@@ -449,6 +560,8 @@ class _Handler(BaseHTTPRequestHandler):
             return body
 
     def do_GET(self) -> None:  # noqa: N802 (http.server API)
+        if not self._host_ok():
+            return self._bad_host()
         path = unquote(urlparse(self.path).path)
         try:
             if path in ("/", "/index.html"):
@@ -679,7 +792,10 @@ class _Handler(BaseHTTPRequestHandler):
 
     def _read_json(self) -> dict:
         n = int(self.headers.get("Content-Length", 0))
-        return json.loads(self.rfile.read(n) or b"{}")
+        body = json.loads(self.rfile.read(n) or b"{}")
+        if not isinstance(body, dict):
+            raise ValueError("JSON body must be an object")
+        return body
 
     # What a mirror must refuse: /quote_loc and /validate write curated/*.yaml, which is *synced*
     # content — an edit there survives only until the next push overwrites it. (`validated` is the
@@ -689,6 +805,11 @@ class _Handler(BaseHTTPRequestHandler):
     _MUTATING = frozenset({"/quote_loc", "/validate"})
 
     def do_POST(self) -> None:  # noqa: N802 (http.server API)
+        if not self._host_ok():
+            return self._bad_host()
+        refusal = self._write_refusal()
+        if refusal:
+            return self._refuse(*refusal)
         path = unquote(urlparse(self.path).path)
         if self.server.read_only and path in self._MUTATING:
             return self._send(HTTPStatus.METHOD_NOT_ALLOWED, "text/plain; charset=utf-8",
@@ -747,24 +868,32 @@ class _Handler(BaseHTTPRequestHandler):
 
 
 def make_server(root: Path, pdf_dir: Path, host: str = "127.0.0.1",
-                port: int = 0, read_only: bool = False) -> _Server:
+                port: int = 0, read_only: bool = False, allowed_hosts=()) -> _Server:
     """Bind (port 0 = ephemeral) but don't serve yet — the caller runs serve_forever()."""
-    return _Server((host, port), root=root, pdf_dir=pdf_dir, read_only=read_only)
+    return _Server((host, port), root=root, pdf_dir=pdf_dir, read_only=read_only,
+                   allowed_hosts=allowed_hosts)
 
 
 def serve(root: Path, pdf_dir: Path, host: str = "127.0.0.1", port: int = 8000,
-          read_only: bool = False) -> None:
+          read_only: bool = False, allowed_hosts=()) -> None:
     """Serve until interrupted, announcing the URL. Raises OSError if the port is taken.
 
     `read_only` is the mirror's mode: a host serving a checkout it does not author. It refuses
     the state-changing POSTs that would write into a tree the next `git pull` overwrites (see
-    `_Handler._MUTATING`)."""
-    srv = make_server(root, pdf_dir, host=host, port=port, read_only=read_only)
+    `_Handler._MUTATING`).
+
+    `allowed_hosts` are the extra Host names (`name` or `name:port`) answered beyond loopback —
+    the public name of a reverse proxy in front of a loopback bind (see "who may talk to this
+    server")."""
+    srv = make_server(root, pdf_dir, host=host, port=port, read_only=read_only,
+                      allowed_hosts=allowed_hosts)
     bound = srv.server_address
     print(f"serving {Path(root).resolve()} at http://{bound[0]}:{bound[1]}/")
     print(f"PDFs from {Path(pdf_dir).resolve()} — Ctrl-C to stop")
     if read_only:
         print("  read-only — the /quote_loc endpoint is disabled")
+    if srv.allowed_hosts:
+        print(f"  also answering to Host: {', '.join(sorted(srv.allowed_hosts))}")
     try:
         srv.serve_forever()
     except KeyboardInterrupt:

@@ -145,6 +145,7 @@ async function resolveLoc(key, sid){
     loc = s.loc;                                   // stored (lit locate) — exact + instant
   } else if (s && s.quote) {
     try { loc = await fetch("resolve", {method: "POST",   // not yet stored → resolve live
+      headers: {"Content-Type": "application/json"},     // the server refuses any other type
       body: JSON.stringify({citekey: key, quote: s.quote})}).then(r => r.ok ? r.json() : null); }
     catch { loc = null; }
   }

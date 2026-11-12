@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import sys
 from pathlib import Path
@@ -13,7 +14,7 @@ from .graph import build_graph, BuildError
 from .build import emit
 from .preview import build_preview_graph, emit_preview
 from .quotes import polish_graph, verify_quote_locs_graph
-from .serve import serve
+from .serve import parse_allowed_hosts, serve
 
 
 def _slug(kw: str) -> str:
@@ -434,6 +435,11 @@ def main(argv: list[str] | None = None) -> int:
     p_srv.add_argument("--read-only", action="store_true",
                        help="refuse the endpoints that write the repo or spawn an agent "
                             "(for a mirror serving a checkout it does not author)")
+    p_srv.add_argument("--allow-host", action="append", default=[], metavar="NAME[:PORT]",
+                       help="also answer requests whose Host header is NAME (repeatable). "
+                            "Loopback names are always allowed; add the public name of a "
+                            "reverse proxy in front of a loopback bind. Also read from "
+                            "LIT_ALLOWED_HOSTS (comma-separated) and config.toml allowed_hosts")
 
     p_enr = sub.add_parser("enrich", help="backfill authors + journal onto existing stubs.yaml "
                                           "entries from OpenAlex (by DOI)")
@@ -723,7 +729,10 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         try:
             serve(cfg.root, pdf_dir, host=args.host, port=args.port,
-                  read_only=args.read_only)
+                  read_only=args.read_only,
+                  allowed_hosts=parse_allowed_hosts(cfg.allowed_hosts,
+                                                    os.environ.get("LIT_ALLOWED_HOSTS", ""),
+                                                    args.allow_host))
         except OSError as e:
             print(f"error: {e}", file=sys.stderr)
             return 1

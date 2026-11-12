@@ -585,6 +585,7 @@ if (LIVE && !DETACHED) (function(){
 // live for a retry.
 async function validatePaper(k, n){
   const response = await fetch("validate", {method: "POST",
+    headers: {"Content-Type": "application/json"},       // the server refuses any other type
     body: JSON.stringify({citekey: k, pass: n})});
   if (!response.ok) throw new Error(`Could not validate ${k}.`);
   const result = await response.json();

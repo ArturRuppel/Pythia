@@ -160,7 +160,8 @@ it to your tailnet over HTTPS, then open that URL on the phone and use **Add to
 Home Screen**:
 
 ```bash
-lit serve --host 127.0.0.1 --port 8000 --root /path/to/your/library
+lit serve --host 127.0.0.1 --port 8000 --root /path/to/your/library \
+    --allow-host <machine>.<tailnet>.ts.net
 tailscale serve --bg --https=8000 http://127.0.0.1:8000
 # -> https://<machine>.<tailnet>.ts.net:8000/
 ```
@@ -168,6 +169,18 @@ tailscale serve --bg --https=8000 http://127.0.0.1:8000
 `tailscale serve` keeps its configuration across reboots and only touches the
 port it is given, so other apps served the same way are unaffected. The
 curation endpoints stay off the ordinary LAN, as with a tailnet-only bind.
+
+`lit serve` answers only requests whose `Host` header names it: loopback
+(`127.0.0.1`, `localhost`, `[::1]`) and the bind address always, anything else
+only when allowed. Tailscale Serve passes the browser's `Host` through
+unchanged, so its name has to be allowed, by `--allow-host NAME` (repeatable;
+`NAME:PORT` pins a port), the `LIT_ALLOWED_HOSTS` environment variable
+(comma-separated), or `allowed_hosts = ["NAME"]` in the library's
+`config.toml`. This stops DNS rebinding: a hostile page cannot pass itself off
+as the server to read the graph or the PDFs. Write requests (`POST`) must also
+be `application/json` and, when the browser sends an `Origin`, come from the
+server's own origin, so no other site can validate a paper or move a quote.
+`curl` and scripts on loopback send no `Origin` and keep working.
 
 ### The offline copy
 

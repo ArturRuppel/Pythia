@@ -55,10 +55,14 @@ def get(srv, path, method="GET", headers=None):
     return r.status, dict(r.getheaders()), body
 
 
-def post(srv, path, obj):
-    """POST a JSON body to the loopback server; return (status, parsed-or-bytes)."""
+def post(srv, path, obj, headers=None):
+    """POST a JSON body to the loopback server; return (status, parsed-or-bytes).
+
+    Sent as `application/json` — the only body type the server takes — unless `headers` says
+    otherwise; no Origin, like curl or an agent on loopback."""
     conn = http.client.HTTPConnection("127.0.0.1", srv.server_address[1], timeout=5)
-    conn.request("POST", path, json.dumps(obj))
+    conn.request("POST", path, json.dumps(obj),
+                 headers={"Content-Type": "application/json", **(headers or {})})
     r = conn.getresponse()
     body = r.read()
     conn.close()
@@ -600,8 +604,10 @@ from litgraph import cli
 
 def test_cli_serve_wires_root_port_and_pdf_dir(repo, monkeypatch):
     calls = {}
-    monkeypatch.setattr(cli, "serve", lambda root, pdf_dir, host, port, read_only: calls.update(
-        root=Path(root), pdf_dir=Path(pdf_dir), host=host, port=port, read_only=read_only))
+    monkeypatch.delenv("LIT_ALLOWED_HOSTS", raising=False)
+    monkeypatch.setattr(cli, "serve", lambda root, pdf_dir, host, port, read_only, allowed_hosts:
+                        calls.update(root=Path(root), pdf_dir=Path(pdf_dir), host=host,
+                                     port=port, read_only=read_only))
     rc = cli.main(["serve", "--root", str(repo), "--host", "100.64.0.1", "--port", "0"])
     assert rc == 0
     assert calls == {"root": repo, "pdf_dir": repo / "pdfs",
@@ -855,6 +861,141 @@ def test_the_page_carries_the_offline_client(srv):
     assert 'navigator.serviceWorker.register("sw.js")' in text
     assert "window.isSecureContext" in text
     assert ":not(#offline){display:none!important}" in text   # the chip survives the app view
+
+
+# ── who may talk to the server: Host allow-list, Origin, Content-Type ───────────────────────
+# A web page open in the curator's browser can reach a loopback server. These pin the two ways
+# that turns into harm: a blind cross-site POST that writes, and DNS rebinding that reads.
+
+def _validated_line(repo):
+    return [ln for ln in (repo / "curated" / "Chen2021Sys.yaml").read_text().splitlines()
+            if ln.startswith("validated:")]
+
+
+def test_a_foreign_origin_cannot_validate(srv, repo):
+    before = (repo / "curated" / "Chen2021Sys.yaml").read_text()
+    status, _ = post(srv, "/validate", {"citekey": "Chen2021Sys"},
+                     headers={"Origin": "https://evil.example"})
+    assert status == 403
+    status, _ = post(srv, "/quote_loc", {"citekey": "Chen2021Sys", "slice_id": "c1", "page": 0,
+                                         "rects": [[0.1, 0.1, 0.2, 0.2]]},
+                     headers={"Origin": "http://localhost:9999"})   # loopback, but another app
+    assert status == 403
+    status, _ = post(srv, "/validate", {"citekey": "Chen2021Sys"}, headers={"Origin": "null"})
+    assert status == 403
+    assert (repo / "curated" / "Chen2021Sys.yaml").read_text() == before
+
+
+def test_a_cross_site_fetch_is_refused_even_without_an_origin(srv, repo):
+    before = (repo / "curated" / "Chen2021Sys.yaml").read_text()
+    status, _ = post(srv, "/validate", {"citekey": "Chen2021Sys"},
+                     headers={"Sec-Fetch-Site": "cross-site"})
+    assert status == 403
+    assert (repo / "curated" / "Chen2021Sys.yaml").read_text() == before
+
+
+def test_a_simple_request_body_type_is_refused(srv, repo):
+    """text/plain (what a no-preflight cross-site fetch sends) and form bodies never write."""
+    before = (repo / "curated" / "Chen2021Sys.yaml").read_text()
+    for ctype in ("text/plain;charset=UTF-8", "application/x-www-form-urlencoded",
+                  "multipart/form-data; boundary=x"):
+        status, _ = post(srv, "/validate", {"citekey": "Chen2021Sys"},
+                         headers={"Content-Type": ctype})
+        assert status == 415, ctype
+    conn = http.client.HTTPConnection("127.0.0.1", srv.server_address[1], timeout=5)
+    conn.request("POST", "/validate", json.dumps({"citekey": "Chen2021Sys"}))   # no type at all
+    assert conn.getresponse().status == 415
+    conn.close()
+    assert (repo / "curated" / "Chen2021Sys.yaml").read_text() == before
+
+
+def test_json_without_an_origin_still_writes(srv, repo):
+    """curl, `lit`, an agent on loopback: no Origin, application/json — allowed, as before."""
+    status, body = post(srv, "/validate", {"citekey": "Chen2021Sys"},
+                        headers={"Content-Type": "application/json; charset=utf-8"})
+    assert status == 200 and body["ok"] is True
+    assert _validated_line(repo)
+
+
+def test_the_viewer_own_origin_may_write(srv, repo):
+    port = srv.server_address[1]
+    status, body = post(srv, "/validate", {"citekey": "Chen2021Sys"},
+                        headers={"Origin": f"http://127.0.0.1:{port}",
+                                 "Sec-Fetch-Site": "same-origin"})
+    assert status == 200 and body["ok"] is True
+
+
+def test_a_json_body_that_is_not_an_object_is_a_400(srv):
+    assert post(srv, "/validate", ["Chen2021Sys"])[0] == 400
+    assert post(srv, "/resolve", "Chen2021Sys")[0] == 400
+
+
+def test_an_unknown_host_is_refused_on_every_method(srv):
+    """DNS rebinding: the hostile page's own name arrives in Host — answer nothing to it."""
+    for path in ("/pdfs.json", "/graph.json", "/", "/pdf/Chen2021Sys.pdf"):
+        status, _, body = get(srv, path, headers={"Host": "evil.example"})
+        assert status == 403 and b"graph" not in body, path
+    assert get(srv, "/pdfs.json", method="HEAD", headers={"Host": "evil.example:8000"})[0] == 403
+    status, _ = post(srv, "/resolve", {"citekey": "Chen2021Sys", "quote": "fixture"},
+                     headers={"Host": "evil.example"})
+    assert status == 403
+
+
+def test_loopback_hosts_are_always_answered(srv):
+    port = srv.server_address[1]
+    for host in (f"127.0.0.1:{port}", f"localhost:{port}", f"[::1]:{port}", "LOCALHOST"):
+        assert get(srv, "/pdfs.json", headers={"Host": host})[0] == 200, host
+
+
+@pytest.fixture()
+def proxied_srv(repo):
+    """Loopback bind behind a reverse proxy that keeps the browser's Host (Tailscale Serve)."""
+    s = make_server(repo, repo / "pdfs", allowed_hosts=["box.example.net"])
+    threading.Thread(target=s.serve_forever, daemon=True).start()
+    yield s
+    s.shutdown()
+    s.server_close()
+
+
+def test_an_allowed_proxy_name_is_answered_and_may_write(proxied_srv, srv):
+    hdr = {"Host": "box.example.net:8000"}
+    assert get(proxied_srv, "/pdfs.json", headers=hdr)[0] == 200
+    assert get(proxied_srv, "/pdfs.json", headers={"Host": "box.example.net"})[0] == 200
+    assert get(srv, "/pdfs.json", headers=hdr)[0] == 403          # not allowed by default
+    status, body = post(proxied_srv, "/validate", {"citekey": "Chen2021Sys"},
+                        headers={**hdr, "Origin": "https://box.example.net:8000"})
+    assert status == 200 and body["ok"] is True
+    status, _ = post(proxied_srv, "/validate", {"citekey": "Chen2021Sys"},
+                     headers={**hdr, "Origin": "https://evil.example"})
+    assert status == 403
+    # another app on the same allowed name (a different port) is a different origin
+    status, _ = post(proxied_srv, "/validate", {"citekey": "Chen2021Sys"},
+                     headers={**hdr, "Origin": "https://box.example.net:5001"})
+    assert status == 403
+
+
+def test_allow_list_entries_parse_from_any_source():
+    from litgraph.serve import parse_allowed_hosts
+    assert parse_allowed_hosts(["A.example", "b.example:8443"], "c.example, d.example:1 ",
+                               None, "") == {"a.example", "b.example:8443", "c.example",
+                                             "d.example:1"}
+    s = make_server(Path("."), Path("."), allowed_hosts="only.example:8443")
+    try:
+        assert "only.example:8443" in s.host_names and "only.example" not in s.host_names
+    finally:
+        s.server_close()
+
+
+def test_cli_serve_merges_allowed_hosts_from_flag_env_and_config(repo, monkeypatch):
+    calls = {}
+    monkeypatch.setattr(cli, "serve", lambda *a, **k: calls.update(k))
+    (repo / "config.toml").write_text('allowed_hosts = ["cfg.example"]\n')
+    monkeypatch.setenv("LIT_ALLOWED_HOSTS", "env.example,env2.example:8000")
+    rc = cli.main(["serve", "--root", str(repo), "--allow-host", "flag.example",
+                   "--allow-host", "flag2.example"])
+    assert rc == 0
+    assert calls["allowed_hosts"] == {"cfg.example", "env.example", "env2.example:8000",
+                                      "flag.example", "flag2.example"}
 
 
 def test_views_serve_only_their_page_types(srv):
